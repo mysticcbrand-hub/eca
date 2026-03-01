@@ -77,7 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div
             id="page-content"
             className="page-scroll"
-            style={{ flex: 1, position: 'relative', overflow: 'hidden auto' }}
+            style={{ flex: 1, position: 'relative', overflow: 'hidden auto', paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
           >
             {children}
           </div>

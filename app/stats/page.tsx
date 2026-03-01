@@ -2,10 +2,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { storage } from '@/lib/storage';
+import { storage, todayStr } from '@/lib/storage';
 import { getLast30Days, getStreakHistory, getCurrentMonthCalendar } from '@/lib/chartData';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { staggerContainer, cardEntrance } from '@/lib/animations';
+import { badgeDefinitions, evaluateBadges, BadgeRarity } from '@/lib/badges';
 
 // Lazy-load Recharts
 const BarChart        = dynamic(() => import('recharts').then(m => m.BarChart),        { ssr: false });
@@ -25,6 +26,13 @@ const tooltipStyle = {
   color: '#EFEFF4',
   fontSize: '12px',
   boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+};
+
+const rarityStyles: Record<BadgeRarity, { label: string; color: string; border: string; }> = {
+  common: { label: 'COMÚN', color: '#7A7A8C', border: 'rgba(255,255,255,0.08)' },
+  rare: { label: 'RARO', color: '#3DDB82', border: 'rgba(61,219,130,0.25)' },
+  epic: { label: 'ÉPICO', color: '#7B6CFF', border: 'rgba(123,108,255,0.35)' },
+  legendary: { label: 'LEG', color: '#E2B96A', border: 'rgba(226,185,106,0.35)' },
 };
 
 /* ─── Count-up animation ───────────────────── */
@@ -114,6 +122,8 @@ export default function StatsPage() {
   const [best, setBest]         = useState(0);
   const [total, setTotal]       = useState(0);
   const [relapses, setRelapses] = useState<{ date: string; days_reached: number; trigger: string }[]>([]);
+  const [rulesTotal, setRulesTotal] = useState(0);
+  const [rulesDone, setRulesDone] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -121,6 +131,12 @@ export default function StatsPage() {
     setBest(storage.getBestStreak());
     setTotal(storage.getTotalDays());
     setRelapses(storage.getRelapses());
+
+    const today = todayStr();
+    const rules = storage.getRules().filter(r => r.enabled);
+    const checks = storage.getChecks(today);
+    setRulesTotal(rules.length);
+    setRulesDone(rules.filter(r => checks[r.id]).length);
   }, []);
 
   const last30       = useMemo(() => mounted ? getLast30Days()           : [], [mounted]);
@@ -128,6 +144,18 @@ export default function StatsPage() {
   const calendarData = useMemo(() => mounted ? getCurrentMonthCalendar() : [], [mounted]);
 
   const isRecord = streak > 0 && streak >= best && streak > 1;
+
+  const badgeStats = useMemo(() => ({
+    streak,
+    bestStreak: best,
+    totalDays: total,
+    relapses: relapses.length,
+    victories: storage.getVictories().length,
+    rulesCompletedToday: rulesDone,
+    rulesTotalToday: rulesTotal,
+  }), [streak, best, total, relapses.length, rulesDone, rulesTotal]);
+
+  const unlocked = useMemo(() => new Set(evaluateBadges(badgeStats)), [badgeStats]);
 
   if (!mounted) return null;
 
@@ -242,6 +270,33 @@ export default function StatsPage() {
         {/* ── Heatmap ── */}
         <StatSection label="ESTE MES">
           <Heatmap data={calendarData} />
+        </StatSection>
+
+        {/* ── Badges (compact) ── */}
+        <StatSection label="BADGES">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            {badgeDefinitions.map(b => {
+              const isUnlocked = unlocked.has(b.id);
+              const rarity = rarityStyles[b.rarity];
+              return (
+                <div
+                  key={b.id}
+                  className={b.rarity === 'legendary' ? 'legendary-shine' : ''}
+                  style={{
+                    padding: '10px', borderRadius: '14px',
+                    background: isUnlocked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${rarity.border}`,
+                    opacity: isUnlocked ? 1 : 0.4,
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: '16px', color: rarity.color, fontWeight: 700, marginBottom: '6px' }}>{b.icon}</div>
+                  <div style={{ fontSize: '10px', color: '#EFEFF4', fontWeight: 600, letterSpacing: '-0.2px' }}>{b.name}</div>
+                  <div style={{ fontSize: '8px', color: rarity.color, letterSpacing: '1px', textTransform: 'uppercase', marginTop: '4px' }}>{rarity.label}</div>
+                </div>
+              );
+            })}
+          </div>
         </StatSection>
 
         {/* ── Relapse history ── */}

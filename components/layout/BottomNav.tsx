@@ -23,10 +23,13 @@ export function BottomNav() {
     <nav
       aria-label="Navegación principal"
       style={{
-        /* sits at bottom of the 430px shell — NOT fixed to viewport */
-        flexShrink: 0,
+        position: 'fixed',
+        bottom: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
         width: '100%',
-        height: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+        maxWidth: '430px',
+        height: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))',
         background: 'rgba(8,8,12,0.88)',
         backdropFilter: 'blur(32px) saturate(180%)',
         WebkitBackdropFilter: 'blur(32px) saturate(180%)',
@@ -34,7 +37,7 @@ export function BottomNav() {
         display: 'flex',
         alignItems: 'flex-start',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        zIndex: 50,
+        zIndex: 200,
       }}
     >
       {/* Tab row */}
@@ -42,7 +45,7 @@ export function BottomNav() {
         style={{
           display: 'flex',
           width: '100%',
-          height: '64px',
+          height: 'var(--nav-height)',
           alignItems: 'center',
           justifyContent: 'space-around',
           paddingInline: '4px',

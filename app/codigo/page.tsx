@@ -7,7 +7,8 @@ import { PageWrapper } from '@/components/layout/PageWrapper';
 import { CustomCheckbox } from '@/components/ui/CustomCheckbox';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { staggerContainer, cardEntrance } from '@/lib/animations';
-import { badgeDefinitions, evaluateBadges, BadgeRarity } from '@/lib/badges';
+import { badgeDefinitions, evaluateBadges, BadgeRarity, BadgeDefinition } from '@/lib/badges';
+import { BadgeToast } from '@/components/ui/BadgeToast';
 
 const rarityStyles: Record<BadgeRarity, { label: string; color: string; border: string; glow?: string; } > = {
   common: { label: 'COMÚN', color: '#7A7A8C', border: 'rgba(255,255,255,0.08)' },
@@ -24,6 +25,9 @@ export default function CodigoPage() {
   const [newText, setNewText] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
+  const [badgeQueue, setBadgeQueue] = useState<BadgeDefinition[]>([]);
+  const [activeBadge, setActiveBadge] = useState<BadgeDefinition | null>(null);
+  const [badgeVisible, setBadgeVisible] = useState(false);
   const today = todayStr();
 
   useEffect(() => {
@@ -89,6 +93,38 @@ export default function CodigoPage() {
   }), [done, total]);
 
   const unlocked = useMemo(() => new Set(evaluateBadges(badgeStats)), [badgeStats]);
+
+  // Badge unlock notifications
+  useEffect(() => {
+    const previous = new Set(storage.getBadgesUnlocked());
+    const current = Array.from(unlocked);
+    const newlyUnlocked = current.filter(id => !previous.has(id));
+
+    // First run without prior key: set current without notifications
+    if (!storage.hasBadgesUnlocked() && current.length > 0) {
+      storage.setBadgesUnlocked(current);
+      return;
+    }
+
+    if (newlyUnlocked.length > 0) {
+      const newBadges = badgeDefinitions.filter(b => newlyUnlocked.includes(b.id));
+      setBadgeQueue(prev => [...prev, ...newBadges]);
+      storage.setBadgesUnlocked(Array.from(new Set([...current, ...Array.from(previous)])));
+    }
+  }, [unlocked]);
+
+  useEffect(() => {
+    if (badgeVisible || activeBadge || badgeQueue.length === 0) return;
+    const next = badgeQueue[0];
+    setActiveBadge(next);
+    setBadgeVisible(true);
+  }, [badgeQueue, badgeVisible, activeBadge]);
+
+  const hideBadgeToast = () => {
+    setBadgeVisible(false);
+    setActiveBadge(null);
+    setBadgeQueue(prev => prev.slice(1));
+  };
 
   if (!mounted) return null;
 
@@ -266,14 +302,14 @@ export default function CodigoPage() {
           </AnimatePresence>
         )}
 
-        {/* ── Badges ── */}
-        <motion.div variants={cardEntrance} style={{ marginTop: '8px' }}>
+        {/* ── Badges grid ── */}
+        <motion.div variants={cardEntrance} style={{ marginTop: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
             <span className="text-label" style={{ color: '#7A7A8C', letterSpacing: '2.2px' }}>BADGES</span>
             <span style={{ fontSize: '12px', color: '#3E3E52' }}>{unlocked.size}/{badgeDefinitions.length}</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
             {badgeDefinitions.map((b) => {
               const isUnlocked = unlocked.has(b.id);
               const rarity = rarityStyles[b.rarity];
@@ -282,7 +318,7 @@ export default function CodigoPage() {
                   key={b.id}
                   className={b.rarity === 'legendary' ? 'legendary-shine' : ''}
                   style={{
-                    padding: '14px 16px', borderRadius: '16px',
+                    padding: '12px', borderRadius: '14px',
                     background: isUnlocked
                       ? 'rgba(255,255,255,0.05)'
                       : 'rgba(255,255,255,0.02)',
@@ -293,44 +329,32 @@ export default function CodigoPage() {
                     transition: 'opacity 0.2s ease',
                   }}
                 >
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <div
                       style={{
-                        width: 40, height: 40, borderRadius: '12px',
+                        width: 36, height: 36, borderRadius: '10px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         background: 'rgba(255,255,255,0.06)',
                         border: '1px solid rgba(255,255,255,0.08)',
-                        fontSize: '18px', color: rarity.color, fontWeight: 700,
+                        fontSize: '16px', color: rarity.color, fontWeight: 700,
                       }}
                     >
                       {b.icon}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#EFEFF4', letterSpacing: '-0.2px' }}>{b.name}</span>
-                        <span style={{
-                          fontSize: '9px', fontWeight: 700, letterSpacing: '1.2px',
-                          color: rarity.color, border: `1px solid ${rarity.border}`,
-                          padding: '2px 6px', borderRadius: '9999px',
-                          textTransform: 'uppercase',
-                        }}>
-                          {rarity.label}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '12px', color: '#7A7A8C', lineHeight: 1.4 }}>
-                        {b.description}
-                      </p>
-                    </div>
-                    <div style={{ fontSize: '10px', color: isUnlocked ? '#3DDB82' : '#3E3E52', letterSpacing: '0.5px' }}>
-                      {isUnlocked ? 'DESBLOQUEADO' : 'BLOQUEADO'}
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#EFEFF4', letterSpacing: '-0.2px' }}>{b.name}</div>
+                      <div style={{ fontSize: '9px', color: rarity.color, letterSpacing: '1px', textTransform: 'uppercase', marginTop: '2px' }}>{rarity.label}</div>
                     </div>
                   </div>
+                  <p style={{ fontSize: '11px', color: '#7A7A8C', lineHeight: 1.4, marginTop: '8px' }}>{b.description}</p>
                 </div>
               );
             })}
           </div>
         </motion.div>
       </motion.div>
+
+      <BadgeToast badge={activeBadge} visible={badgeVisible} onHide={hideBadgeToast} />
     </PageWrapper>
   );
 }
