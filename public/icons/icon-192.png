@@ -5,13 +5,40 @@
       <stop offset='0%' stop-color='#0D0D12'/>
       <stop offset='100%' stop-color='#07070A'/>
     </linearGradient>
-    <linearGradient id='accent' x1='0%' y1='0%' x2='100%' y2='100%'>
-      <stop offset='0%' stop-color='#3DDB82'/>
-      <stop offset='100%' stop-color='#2AB86A'/>
+    <radialGradient id='mesh1' cx='20%' cy='20%' r='60%'>
+      <stop offset='0%' stop-color='#5DEBE8' stop-opacity='0.55'/>
+      <stop offset='60%' stop-color='#3DDB82' stop-opacity='0.30'/>
+      <stop offset='100%' stop-color='#0D0D12' stop-opacity='0'/>
+    </radialGradient>
+    <radialGradient id='mesh2' cx='80%' cy='25%' r='55%'>
+      <stop offset='0%' stop-color='#4D9EFF' stop-opacity='0.40'/>
+      <stop offset='65%' stop-color='#3DDB82' stop-opacity='0.22'/>
+      <stop offset='100%' stop-color='#0D0D12' stop-opacity='0'/>
+    </radialGradient>
+    <radialGradient id='mesh3' cx='50%' cy='90%' r='65%'>
+      <stop offset='0%' stop-color='#2AB86A' stop-opacity='0.40'/>
+      <stop offset='60%' stop-color='#1D9958' stop-opacity='0.18'/>
+      <stop offset='100%' stop-color='#0D0D12' stop-opacity='0'/>
+    </radialGradient>
+    <linearGradient id='text' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#EFEFF4'/>
+      <stop offset='70%' stop-color='#EFEFF4'/>
+      <stop offset='100%' stop-color='#3DDB82'/>
     </linearGradient>
+    <filter id='glow'>
+      <feGaussianBlur stdDeviation='2.3040000000000003' result='b'/>
+      <feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge>
+    </filter>
   </defs>
+
   <rect width='192' height='192' rx='42.24' fill='url(#bg)'/>
-  <rect x='26.880000000000003' y='26.880000000000003' width='88.32000000000001' height='88.32000000000001' rx='14.783999999999999' fill='none' stroke='url(#accent)' stroke-width='2.3040000000000003'/>
-  <rect x='53.760000000000005' y='53.760000000000005' width='88.32000000000001' height='88.32000000000001' rx='14.783999999999999' fill='none' stroke='rgba(239,239,244,0.85)' stroke-width='2.3040000000000003'/>
-  <circle cx='145.92000000000002' cy='46.08' r='7.68' fill='url(#accent)'/>
+  <rect width='192' height='192' rx='42.24' fill='url(#mesh1)'/>
+  <rect width='192' height='192' rx='42.24' fill='url(#mesh2)'/>
+  <rect width='192' height='192' rx='42.24' fill='url(#mesh3)'/>
+
+  <text x='50%' y='56%' font-family='-apple-system,BlinkMacSystemFont,Helvetica Neue,sans-serif'
+    font-weight='800' font-size='69.12' fill='url(#text)'
+    text-anchor='middle' dominant-baseline='middle' letter-spacing='-3.4560000000000004' filter='url(#glow)'>ECA</text>
+
+  <rect width='192' height='192' rx='42.24' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1.2'/>
 </svg>
