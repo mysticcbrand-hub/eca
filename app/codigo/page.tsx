@@ -1,12 +1,20 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Pencil } from 'lucide-react';
 import { storage, Rule, todayStr } from '@/lib/storage';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { CustomCheckbox } from '@/components/ui/CustomCheckbox';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { staggerContainer, cardEntrance } from '@/lib/animations';
+import { badgeDefinitions, evaluateBadges, BadgeRarity } from '@/lib/badges';
+
+const rarityStyles: Record<BadgeRarity, { label: string; color: string; border: string; glow?: string; } > = {
+  common: { label: 'COMÚN', color: '#7A7A8C', border: 'rgba(255,255,255,0.08)' },
+  rare: { label: 'RARO', color: '#3DDB82', border: 'rgba(61,219,130,0.25)', glow: '0 0 18px rgba(61,219,130,0.15)' },
+  epic: { label: 'ÉPICO', color: '#7B6CFF', border: 'rgba(123,108,255,0.35)', glow: '0 0 18px rgba(123,108,255,0.20)' },
+  legendary: { label: 'LEGENDARIO', color: '#E2B96A', border: 'rgba(226,185,106,0.35)', glow: '0 0 22px rgba(226,185,106,0.30)' },
+};
 
 export default function CodigoPage() {
   const [mounted, setMounted] = useState(false);
@@ -14,6 +22,8 @@ export default function CodigoPage() {
   const [checks, setChecks]   = useState<Record<string, boolean>>({});
   const [adding, setAdding]   = useState(false);
   const [newText, setNewText] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
   const today = todayStr();
 
   useEffect(() => {
@@ -46,7 +56,21 @@ export default function CodigoPage() {
     setAdding(false);
   }, [newText, rules]);
 
-  if (!mounted) return null;
+  const startEdit = useCallback((rule: Rule) => {
+    setEditingId(rule.id);
+    setEditingText(rule.text);
+  }, []);
+
+  const saveEdit = useCallback(() => {
+    if (!editingId) return;
+    const text = editingText.trim();
+    if (!text) { setEditingId(null); setEditingText(''); return; }
+    const next = rules.map(r => r.id === editingId ? { ...r, text } : r);
+    storage.setRules(next);
+    setRules(next);
+    setEditingId(null);
+    setEditingText('');
+  }, [editingId, editingText, rules]);
 
   const active    = rules.filter(r => r.enabled);
   const done      = active.filter(r => checks[r.id]).length;
@@ -54,12 +78,26 @@ export default function CodigoPage() {
   const pct       = total > 0 ? Math.round((done / total) * 100) : 0;
   const allDone   = total > 0 && done === total;
 
+  const badgeStats = useMemo(() => ({
+    streak: storage.getStreak(),
+    bestStreak: storage.getBestStreak(),
+    totalDays: storage.getTotalDays(),
+    relapses: storage.getRelapses().length,
+    victories: storage.getVictories().length,
+    rulesCompletedToday: done,
+    rulesTotalToday: total,
+  }), [done, total]);
+
+  const unlocked = useMemo(() => new Set(evaluateBadges(badgeStats)), [badgeStats]);
+
+  if (!mounted) return null;
+
   return (
     <PageWrapper>
       {/* Header */}
       <div style={{ padding: '20px 20px 4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <span className="text-label" style={{ color: '#7A7A8C', letterSpacing: '2.5px' }}>MI CÓDIGO</span>
+          <span className="text-label" style={{ color: '#7A7A8C', letterSpacing: '2.5px' }}>REGLAS</span>
           <span style={{ fontSize: '13px', color: pct === 100 ? '#3DDB82' : '#7A7A8C', fontWeight: 600, letterSpacing: '0.3px', transition: 'color 0.3s' }}>
             {done}/{total} · {pct}%
           </span>
@@ -90,7 +128,7 @@ export default function CodigoPage() {
                   ? '0 4px 20px rgba(0,0,0,0.25), 0 0 0 1px rgba(61,219,130,0.06) inset'
                   : '0 4px 20px rgba(0,0,0,0.22), 0 1px 0 rgba(255,255,255,0.06) inset',
                 transition: 'border 0.25s ease, background 0.25s ease, box-shadow 0.25s ease',
-                opacity: rule.enabled ? 1 : 0.4,
+                opacity: rule.enabled ? 1 : 0.5,
               }}
             >
               <CustomCheckbox
@@ -98,25 +136,61 @@ export default function CodigoPage() {
                 onChange={() => rule.enabled && toggleCheck(rule.id)}
                 size={26}
               />
-              <span style={{
-                flex: 1, fontSize: '15px', lineHeight: 1.5,
-                color: checks[rule.id] ? '#7A7A8C' : '#EFEFF4',
-                textDecoration: checks[rule.id] ? 'line-through' : 'none',
-                fontWeight: checks[rule.id] ? 400 : 500,
-                transition: 'all 0.2s ease',
-              }}>
-                {rule.text}
-              </span>
-              {rule.custom && (
+
+              {/* Text or edit input */}
+              {editingId === rule.id ? (
+                <input
+                  value={editingText}
+                  onChange={(e) => setEditingText(e.target.value)}
+                  onBlur={saveEdit}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveEdit();
+                    if (e.key === 'Escape') { setEditingId(null); setEditingText(''); }
+                  }}
+                  autoFocus
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#EFEFF4',
+                    fontSize: '15px',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              ) : (
+                <span style={{
+                  flex: 1, fontSize: '15px', lineHeight: 1.5,
+                  color: checks[rule.id] ? '#7A7A8C' : '#EFEFF4',
+                  textDecoration: checks[rule.id] ? 'line-through' : 'none',
+                  fontWeight: checks[rule.id] ? 400 : 500,
+                  transition: 'all 0.2s ease',
+                }}>
+                  {rule.text}
+                </span>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => deleteRule(rule.id)}
-                  aria-label="Eliminar regla"
+                  onClick={() => startEdit(rule)}
+                  aria-label="Editar regla"
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3E3E52', padding: '4px', borderRadius: '6px' }}
                 >
-                  <X size={14} strokeWidth={2} />
+                  <Pencil size={14} strokeWidth={2} />
                 </motion.button>
-              )}
+                {rule.custom && (
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => deleteRule(rule.id)}
+                    aria-label="Eliminar regla"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3E3E52', padding: '4px', borderRadius: '6px' }}
+                  >
+                    <X size={14} strokeWidth={2} />
+                  </motion.button>
+                )}
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -185,14 +259,77 @@ export default function CodigoPage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                   transition: 'border 0.2s, color 0.2s',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#7A7A8C'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.14)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#3E3E52'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.09)'; }}
               >
                 <Plus size={15} strokeWidth={2} /> Nueva regla
               </motion.button>
             )}
           </AnimatePresence>
         )}
+
+        {/* ── Badges ── */}
+        <motion.div variants={cardEntrance} style={{ marginTop: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <span className="text-label" style={{ color: '#7A7A8C', letterSpacing: '2.2px' }}>BADGES</span>
+            <span style={{ fontSize: '12px', color: '#3E3E52' }}>{unlocked.size}/{badgeDefinitions.length}</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+            {badgeDefinitions.map((b) => {
+              const isUnlocked = unlocked.has(b.id);
+              const rarity = rarityStyles[b.rarity];
+              return (
+                <div
+                  key={b.id}
+                  className={b.rarity === 'legendary' ? 'legendary-shine' : ''}
+                  style={{
+                    padding: '14px 16px', borderRadius: '16px',
+                    background: isUnlocked
+                      ? 'rgba(255,255,255,0.05)'
+                      : 'rgba(255,255,255,0.02)',
+                    backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                    border: `1px solid ${rarity.border}`,
+                    boxShadow: rarity.glow ?? 'none',
+                    opacity: isUnlocked ? 1 : 0.45,
+                    transition: 'opacity 0.2s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        width: 40, height: 40, borderRadius: '12px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        fontSize: '18px', color: rarity.color, fontWeight: 700,
+                      }}
+                    >
+                      {b.icon}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#EFEFF4', letterSpacing: '-0.2px' }}>{b.name}</span>
+                        <span style={{
+                          fontSize: '9px', fontWeight: 700, letterSpacing: '1.2px',
+                          color: rarity.color, border: `1px solid ${rarity.border}`,
+                          padding: '2px 6px', borderRadius: '9999px',
+                          textTransform: 'uppercase',
+                        }}>
+                          {rarity.label}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#7A7A8C', lineHeight: 1.4 }}>
+                        {b.description}
+                      </p>
+                    </div>
+                    <div style={{ fontSize: '10px', color: isUnlocked ? '#3DDB82' : '#3E3E52', letterSpacing: '0.5px' }}>
+                      {isUnlocked ? 'DESBLOQUEADO' : 'BLOQUEADO'}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
       </motion.div>
     </PageWrapper>
   );

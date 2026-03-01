@@ -7,7 +7,7 @@ import { useHaptics } from '@/hooks/useHaptics';
 
 const tabs = [
   { href: '/',         label: 'HOY',      icon: Home },
-  { href: '/codigo',   label: 'CÓDIGO',   icon: List },
+  { href: '/codigo',   label: 'REGLAS',   icon: List },
   { href: '/proyecto', label: 'PROYECTO', icon: Layers },
   { href: '/stats',    label: 'STATS',    icon: BarChart2 },
 ];
