@@ -1,45 +1,52 @@
 <svg width='512' height='512' viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'>
   <defs>
-    <linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'>
-      <stop offset='0%' stop-color='#0D0D12'/>
+    <radialGradient id='bg512' cx='50%' cy='0%' r='100%'>
+      <stop offset='0%' stop-color='#141420'/>
       <stop offset='100%' stop-color='#07070A'/>
+    </radialGradient>
+    <linearGradient id='g512' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#4DE89A'/>
+      <stop offset='100%' stop-color='#1D9958'/>
     </linearGradient>
-    <linearGradient id='green' x1='0%' y1='0%' x2='100%' y2='100%'>
-      <stop offset='0%' stop-color='#3DDB82'/>
-      <stop offset='100%' stop-color='#2AB86A'/>
-    </linearGradient>
-    <linearGradient id='text' x1='0%' y1='0%' x2='100%' y2='100%'>
-      <stop offset='0%' stop-color='#EFEFF4'/>
-      <stop offset='60%' stop-color='#EFEFF4'/>
-      <stop offset='100%' stop-color='#3DDB82'/>
-    </linearGradient>
-    <filter id='glow'>
-      <feGaussianBlur stdDeviation='6' result='blur'/>
-      <feMerge><feMergeNode in='blur'/><feMergeNode in='SourceGraphic'/></feMerge>
+    <filter id='glow512' x='-20%' y='-20%' width='140%' height='140%'>
+      <feGaussianBlur stdDeviation='9.216' result='b'/>
+      <feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge>
     </filter>
-    <filter id='softglow'>
-      <feGaussianBlur stdDeviation='20' result='blur'/>
-      <feMerge><feMergeNode in='blur'/><feMergeNode in='SourceGraphic'/></feMerge>
-    </filter>
+    <clipPath id='clip512'>
+      <rect width='512' height='512' rx='106.496'/>
+    </clipPath>
   </defs>
+
   <!-- Background -->
-  <rect width='512' height='512' rx='110' fill='url(#bg)'/>
-  <rect width='512' height='512' rx='110' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1.5'/>
-  <!-- Ambient glow top -->
-  <ellipse cx='256' cy='40' rx='200' ry='100' fill='rgba(61,219,130,0.07)'/>
-  <!-- Corner brackets — top right -->
-  <rect x='396' y='48' width='68' height='6' rx='3' fill='url(#green)' opacity='0.9'/>
-  <rect x='458' y='48' width='6' height='68' rx='3' fill='url(#green)' opacity='0.9'/>
-  <!-- Corner brackets — bottom left -->
-  <rect x='48' y='458' width='68' height='6' rx='3' fill='url(#green)' opacity='0.5'/>
-  <rect x='48' y='396' width='6' height='68' rx='3' fill='url(#green)' opacity='0.5'/>
-  <!-- Background text glow -->
-  <text x='256' y='290' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='200' fill='rgba(61,219,130,0.04)' text-anchor='middle' dominant-baseline='middle' letter-spacing='-8'>ECA</text>
-  <!-- ECA wordmark main -->
-  <text x='256' y='285' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='180' fill='url(#text)' text-anchor='middle' dominant-baseline='middle' letter-spacing='-8' filter='url(#glow)'>ECA</text>
-  <!-- Tagline line -->
-  <rect x='166' y='368' width='180' height='2' rx='1' fill='url(#green)' opacity='0.35'/>
-  <!-- Micro dots -->
-  <circle cx='156' cy='369' r='3' fill='#3DDB82' opacity='0.5'/>
-  <circle cx='356' cy='369' r='3' fill='#3DDB82' opacity='0.5'/>
+  <rect width='512' height='512' rx='106.496' fill='url(#bg512)'/>
+
+  <!-- Subtle top glow -->
+  <ellipse cx='256' cy='-25.6' rx='281.6' ry='204.8' fill='rgba(61,219,130,0.09)' clip-path='url(#clip512)'/>
+
+  <!-- Top-right bracket -->
+  <rect x='396.8' y='48.64' width='66.56' height='13.312' rx='7.168' fill='url(#g512)'/>
+  <rect x='450.048' y='48.64' width='13.312' height='66.56' rx='7.168' fill='url(#g512)'/>
+
+  <!-- Bottom-left bracket (dimmer) -->
+  <rect x='48.64' y='450.048' width='66.56' height='13.312' rx='7.168' fill='url(#g512)' opacity='0.45'/>
+  <rect x='48.64' y='396.8' width='13.312' height='66.56' rx='7.168' fill='url(#g512)' opacity='0.45'/>
+
+  <!-- ECA wordmark -->
+  <text
+    x='256' y='304.64'
+    font-family='-apple-system,BlinkMacSystemFont,Helvetica Neue,sans-serif'
+    font-weight='800'
+    font-size='174.08'
+    fill='#EFEFF4'
+    text-anchor='middle'
+    dominant-baseline='middle'
+    letter-spacing='-6.9632000000000005'
+    filter='url(#glow512)'
+  >ECA</text>
+
+  <!-- Green accent line under text -->
+  <rect x='163.84' y='358.4' width='184.32' height='8.192' rx='4.096' fill='url(#g512)' opacity='0.55'/>
+
+  <!-- Border overlay -->
+  <rect width='512' height='512' rx='106.496' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='1.5'/>
 </svg>

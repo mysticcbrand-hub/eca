@@ -1,0 +1,7 @@
+<svg width='2048' height='2732' viewBox='0 0 2048 2732' xmlns='http://www.w3.org/2000/svg'>
+  <rect width='2048' height='2732' fill='#07070A'/>
+  <ellipse cx='1024' cy='900' rx='800' ry='500' fill='rgba(61,219,130,0.06)'/>
+  <text x='1024' y='1300' font-family='-apple-system,sans-serif' font-weight='800' font-size='320' fill='#EFEFF4' text-anchor='middle' dominant-baseline='middle' letter-spacing='-12'>ECA</text>
+  <text x='1024' y='1480' font-family='-apple-system,sans-serif' font-weight='400' font-size='72' fill='#7A7A8C' text-anchor='middle' dominant-baseline='middle' letter-spacing='2'>Tu mente. Reclamada.</text>
+  <rect x='924' y='1570' width='200' height='2' rx='1' fill='#3DDB82' opacity='0.4'/>
+</svg>
