@@ -1,0 +1,37 @@
+<svg width='192' height='192' viewBox='0 0 192 192' xmlns='http://www.w3.org/2000/svg'>
+  <defs>
+    <linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#0D0D12'/>
+      <stop offset='100%' stop-color='#07070A'/>
+    </linearGradient>
+    <linearGradient id='green' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#3DDB82'/>
+      <stop offset='100%' stop-color='#2AB86A'/>
+    </linearGradient>
+    <linearGradient id='text' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#EFEFF4'/>
+      <stop offset='60%' stop-color='#EFEFF4'/>
+      <stop offset='100%' stop-color='#3DDB82'/>
+    </linearGradient>
+    <filter id='glow'>
+      <feGaussianBlur stdDeviation='3' result='blur'/>
+      <feMerge><feMergeNode in='blur'/><feMergeNode in='SourceGraphic'/></feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width='192' height='192' rx='40' fill='url(#bg)'/>
+  <!-- Subtle border -->
+  <rect width='192' height='192' rx='40' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1'/>
+  <!-- Top ambient glow -->
+  <ellipse cx='96' cy='20' rx='80' ry='40' fill='rgba(61,219,130,0.06)'/>
+  <!-- Corner accent mark — top right -->
+  <rect x='148' y='20' width='24' height='3' rx='1.5' fill='url(#green)' opacity='0.8'/>
+  <rect x='168' y='20' width='3' height='24' rx='1.5' fill='url(#green)' opacity='0.8'/>
+  <!-- Corner accent mark — bottom left -->
+  <rect x='20' y='169' width='24' height='3' rx='1.5' fill='url(#green)' opacity='0.5'/>
+  <rect x='20' y='148' width='3' height='24' rx='1.5' fill='url(#green)' opacity='0.5'/>
+  <!-- ECA wordmark -->
+  <text x='96' y='112' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='64' fill='url(#text)' text-anchor='middle' dominant-baseline='middle' letter-spacing='-3' filter='url(#glow)'>ECA</text>
+  <!-- Tagline dot line -->
+  <rect x='66' y='132' width='60' height='1' rx='0.5' fill='url(#green)' opacity='0.4'/>
+</svg>

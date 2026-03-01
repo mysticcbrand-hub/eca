@@ -1,0 +1,45 @@
+<svg width='512' height='512' viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'>
+  <defs>
+    <linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#0D0D12'/>
+      <stop offset='100%' stop-color='#07070A'/>
+    </linearGradient>
+    <linearGradient id='green' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#3DDB82'/>
+      <stop offset='100%' stop-color='#2AB86A'/>
+    </linearGradient>
+    <linearGradient id='text' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#EFEFF4'/>
+      <stop offset='60%' stop-color='#EFEFF4'/>
+      <stop offset='100%' stop-color='#3DDB82'/>
+    </linearGradient>
+    <filter id='glow'>
+      <feGaussianBlur stdDeviation='6' result='blur'/>
+      <feMerge><feMergeNode in='blur'/><feMergeNode in='SourceGraphic'/></feMerge>
+    </filter>
+    <filter id='softglow'>
+      <feGaussianBlur stdDeviation='20' result='blur'/>
+      <feMerge><feMergeNode in='blur'/><feMergeNode in='SourceGraphic'/></feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width='512' height='512' rx='110' fill='url(#bg)'/>
+  <rect width='512' height='512' rx='110' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1.5'/>
+  <!-- Ambient glow top -->
+  <ellipse cx='256' cy='40' rx='200' ry='100' fill='rgba(61,219,130,0.07)'/>
+  <!-- Corner brackets — top right -->
+  <rect x='396' y='48' width='68' height='6' rx='3' fill='url(#green)' opacity='0.9'/>
+  <rect x='458' y='48' width='6' height='68' rx='3' fill='url(#green)' opacity='0.9'/>
+  <!-- Corner brackets — bottom left -->
+  <rect x='48' y='458' width='68' height='6' rx='3' fill='url(#green)' opacity='0.5'/>
+  <rect x='48' y='396' width='6' height='68' rx='3' fill='url(#green)' opacity='0.5'/>
+  <!-- Background text glow -->
+  <text x='256' y='290' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='200' fill='rgba(61,219,130,0.04)' text-anchor='middle' dominant-baseline='middle' letter-spacing='-8'>ECA</text>
+  <!-- ECA wordmark main -->
+  <text x='256' y='285' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='180' fill='url(#text)' text-anchor='middle' dominant-baseline='middle' letter-spacing='-8' filter='url(#glow)'>ECA</text>
+  <!-- Tagline line -->
+  <rect x='166' y='368' width='180' height='2' rx='1' fill='url(#green)' opacity='0.35'/>
+  <!-- Micro dots -->
+  <circle cx='156' cy='369' r='3' fill='#3DDB82' opacity='0.5'/>
+  <circle cx='356' cy='369' r='3' fill='#3DDB82' opacity='0.5'/>
+</svg>
