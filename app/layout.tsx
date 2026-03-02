@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         style={{
           overflow: 'hidden',
-          background: '#0D0D12',
+          background: '#09090E',
           position: 'fixed',
           width: '100%',
           height: '100dvh',
@@ -70,7 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            background: '#0D0D12',
+            background: '#09090E',
           }}
         >
           {/* Page content — scrollable region */}

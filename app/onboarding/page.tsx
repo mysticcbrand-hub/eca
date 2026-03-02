@@ -38,7 +38,104 @@ function Dots({ active }: { active: number }) {
   );
 }
 
-/* ─── STEP 0: Bienvenida ─────────────────── */
+/* ─── STEP 0: Acceso ─────────────────────── */
+function StepAcceso({ onNext }: { onNext: () => void }) {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+
+  const handleChange = (value: string) => {
+    const clean = value.replace(/\D/g, '').slice(0, 4);
+    setCode(clean);
+    if (error) setError('');
+  };
+
+  const handleSubmit = () => {
+    if (code === '1717') {
+      onNext();
+      return;
+    }
+    setError('Código inválido');
+  };
+
+  return (
+    <div style={{
+      minHeight: '100dvh', background: '#07070A',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '48px 28px', position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute', top: '-160px', left: '50%',
+        transform: 'translateX(-50%)', width: '520px', height: '380px',
+        background: 'radial-gradient(ellipse, rgba(77,158,255,0.12) 0%, rgba(61,219,130,0.08) 45%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px', maxWidth: '320px', width: '100%', textAlign: 'center' }}
+      >
+        <motion.div variants={cardEntrance} style={{
+          padding: '26px 24px', borderRadius: '22px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+          width: '100%',
+        }}>
+          <p style={{ fontSize: '11px', color: '#3E3E52', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>
+            Acceso
+          </p>
+          <h2 className="text-title" style={{ color: '#EFEFF4', fontSize: '22px', marginBottom: '12px' }}>
+            Introduce el código
+          </h2>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <input
+              value={code}
+              onChange={e => handleChange(e.target.value)}
+              inputMode="numeric"
+              type="password"
+              autoComplete="one-time-code"
+              placeholder="••••"
+              style={{
+                width: '160px', height: '54px', textAlign: 'center',
+                fontSize: '20px', letterSpacing: '10px',
+                background: 'rgba(255,255,255,0.06)',
+                border: `1px solid ${error ? 'rgba(255,77,77,0.35)' : 'rgba(255,255,255,0.14)'}`,
+                borderRadius: '14px', color: '#EFEFF4', outline: 'none',
+                fontWeight: 600,
+              }}
+            />
+          </div>
+          {error && (
+            <p style={{ marginTop: '10px', fontSize: '12px', color: '#FF4D4D' }}>{error}</p>
+          )}
+        </motion.div>
+
+        <motion.button
+          variants={cardEntrance}
+          whileHover={{ scale: 1.02, boxShadow: '0 0 0 1px rgba(61,219,130,0.4), 0 0 28px rgba(61,219,130,0.18)' }}
+          whileTap={{ scale: 0.97 }}
+          onClick={handleSubmit}
+          style={{
+            marginTop: '4px', width: '100%', height: '56px', borderRadius: '9999px',
+            background: 'linear-gradient(135deg, rgba(61,219,130,0.16) 0%, rgba(61,219,130,0.08) 100%)',
+            border: '1px solid rgba(61,219,130,0.30)',
+            color: '#3DDB82', fontSize: '11px', fontWeight: 700,
+            letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer',
+            boxShadow: '0 0 0 1px rgba(61,219,130,0.12), 0 0 24px rgba(61,219,130,0.10)',
+            backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          }}
+        >
+          Continuar
+        </motion.button>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ─── STEP 1: Bienvenida ─────────────────── */
 function StepBienvenida({ onNext }: { onNext: () => void }) {
   return (
     <div style={{
@@ -488,21 +585,26 @@ export default function OnboardingPage() {
       <AnimatePresence mode="wait">
         {step === 0 && (
           <motion.div key="s0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -30 }} transition={easeCustom}>
-            <StepBienvenida onNext={() => setStep(1)} />
+            <StepAcceso onNext={() => setStep(1)} />
           </motion.div>
         )}
         {step === 1 && (
           <motion.div key="s1" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={easeCustom}>
-            <StepEnemigos onNext={targets => { storage.setTargets(targets); setStep(2); }} />
+            <StepBienvenida onNext={() => setStep(2)} />
           </motion.div>
         )}
         {step === 2 && (
           <motion.div key="s2" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={easeCustom}>
-            <StepReglas onNext={rules => { storage.setRules(rules); setStep(3); }} />
+            <StepEnemigos onNext={targets => { storage.setTargets(targets); setStep(3); }} />
           </motion.div>
         )}
         {step === 3 && (
           <motion.div key="s3" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={easeCustom}>
+            <StepReglas onNext={rules => { storage.setRules(rules); setStep(4); }} />
+          </motion.div>
+        )}
+        {step === 4 && (
+          <motion.div key="s4" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={easeCustom}>
             <StepCompromiso onFinish={handleFinish} />
           </motion.div>
         )}
