@@ -1,33 +1,61 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Pencil } from 'lucide-react';
+import { Plus, X, Pencil, CheckCheck } from 'lucide-react';
 import { storage, Rule, todayStr } from '@/lib/storage';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { CustomCheckbox } from '@/components/ui/CustomCheckbox';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { staggerContainer, cardEntrance } from '@/lib/animations';
+import { staggerContainer, cardEntrance, springs } from '@/lib/animations';
 import { badgeDefinitions, evaluateBadges, BadgeRarity, BadgeDefinition } from '@/lib/badges';
 import { BadgeToast } from '@/components/ui/BadgeToast';
 
-const rarityStyles: Record<BadgeRarity, { label: string; color: string; border: string; glow?: string; } > = {
-  common: { label: 'COMÚN', color: '#7A7A8C', border: 'rgba(255,255,255,0.08)' },
-  rare: { label: 'RARO', color: '#3DDB82', border: 'rgba(61,219,130,0.25)', glow: '0 0 18px rgba(61,219,130,0.15)' },
-  epic: { label: 'ÉPICO', color: '#7B6CFF', border: 'rgba(123,108,255,0.35)', glow: '0 0 18px rgba(123,108,255,0.20)' },
-  legendary: { label: 'LEGENDARIO', color: '#E2B96A', border: 'rgba(226,185,106,0.35)', glow: '0 0 22px rgba(226,185,106,0.30)' },
+/* ── Rarity visual system ───────────────── */
+const rarityConfig: Record<BadgeRarity, {
+  label: string; color: string; border: string;
+  bg: string; glow?: string; textGlow?: string;
+}> = {
+  common: {
+    label: 'COMÚN',
+    color: 'var(--t3)',
+    border: 'var(--border-dim)',
+    bg: 'rgba(255,255,255,0.03)',
+  },
+  rare: {
+    label: 'RARO',
+    color: 'var(--green-text)',
+    border: 'rgba(48,209,88,0.22)',
+    bg: 'rgba(48,209,88,0.06)',
+    glow: '0 0 16px rgba(48,209,88,0.12)',
+    textGlow: 'var(--green-text)',
+  },
+  epic: {
+    label: 'ÉPICO',
+    color: '#7B6CFF',
+    border: 'rgba(123,108,255,0.30)',
+    bg: 'rgba(123,108,255,0.07)',
+    glow: '0 0 18px rgba(123,108,255,0.14)',
+  },
+  legendary: {
+    label: 'LEGENDARIO',
+    color: 'var(--gold-warm)',
+    border: 'rgba(232,184,75,0.32)',
+    bg: 'rgba(232,184,75,0.07)',
+    glow: '0 0 22px rgba(232,184,75,0.20)',
+  },
 };
 
 export default function CodigoPage() {
-  const [mounted, setMounted] = useState(false);
-  const [rules, setRules]     = useState<Rule[]>([]);
-  const [checks, setChecks]   = useState<Record<string, boolean>>({});
-  const [adding, setAdding]   = useState(false);
-  const [newText, setNewText] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [mounted,     setMounted    ] = useState(false);
+  const [rules,       setRules      ] = useState<Rule[]>([]);
+  const [checks,      setChecks     ] = useState<Record<string, boolean>>({});
+  const [adding,      setAdding     ] = useState(false);
+  const [newText,     setNewText    ] = useState('');
+  const [editingId,   setEditingId  ] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
-  const [badgeQueue, setBadgeQueue] = useState<BadgeDefinition[]>([]);
+  const [badgeQueue,  setBadgeQueue ] = useState<BadgeDefinition[]>([]);
   const [activeBadge, setActiveBadge] = useState<BadgeDefinition | null>(null);
-  const [badgeVisible, setBadgeVisible] = useState(false);
+  const [badgeVisible,setBadgeVisible] = useState(false);
   const today = todayStr();
 
   useEffect(() => {
@@ -76,36 +104,32 @@ export default function CodigoPage() {
     setEditingText('');
   }, [editingId, editingText, rules]);
 
-  const active    = rules.filter(r => r.enabled);
-  const done      = active.filter(r => checks[r.id]).length;
-  const total     = active.length;
-  const pct       = total > 0 ? Math.round((done / total) * 100) : 0;
-  const allDone   = total > 0 && done === total;
+  const active  = rules.filter(r => r.enabled);
+  const done    = active.filter(r => checks[r.id]).length;
+  const total   = active.length;
+  const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
+  const allDone = total > 0 && done === total;
 
   const badgeStats = useMemo(() => ({
-    streak: storage.getStreak(),
-    bestStreak: storage.getBestStreak(),
-    totalDays: storage.getTotalDays(),
-    relapses: storage.getRelapses().length,
-    victories: storage.getVictories().length,
+    streak:              storage.getStreak(),
+    bestStreak:          storage.getBestStreak(),
+    totalDays:           storage.getTotalDays(),
+    relapses:            storage.getRelapses().length,
+    victories:           storage.getVictories().length,
     rulesCompletedToday: done,
-    rulesTotalToday: total,
+    rulesTotalToday:     total,
   }), [done, total]);
 
   const unlocked = useMemo(() => new Set(evaluateBadges(badgeStats)), [badgeStats]);
 
-  // Badge unlock notifications
   useEffect(() => {
     const previous = new Set(storage.getBadgesUnlocked());
-    const current = Array.from(unlocked);
+    const current  = Array.from(unlocked);
     const newlyUnlocked = current.filter(id => !previous.has(id));
-
-    // First run without prior key: set current without notifications
     if (!storage.hasBadgesUnlocked() && current.length > 0) {
       storage.setBadgesUnlocked(current);
       return;
     }
-
     if (newlyUnlocked.length > 0) {
       const newBadges = badgeDefinitions.filter(b => newlyUnlocked.includes(b.id));
       setBadgeQueue(prev => [...prev, ...newBadges]);
@@ -115,8 +139,7 @@ export default function CodigoPage() {
 
   useEffect(() => {
     if (badgeVisible || activeBadge || badgeQueue.length === 0) return;
-    const next = badgeQueue[0];
-    setActiveBadge(next);
+    setActiveBadge(badgeQueue[0]);
     setBadgeVisible(true);
   }, [badgeQueue, badgeVisible, activeBadge]);
 
@@ -129,131 +152,151 @@ export default function CodigoPage() {
   if (!mounted) return null;
 
   return (
-    <PageWrapper>
-      {/* Header */}
-      <div style={{ padding: '20px 20px 4px' }}>
+    <PageWrapper glowState={allDone ? 'success' : 'neutral'}>
+
+      {/* ── Header ── */}
+      <div style={{ padding: '20px 20px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <span className="text-label" style={{ color: '#7A7A8C', letterSpacing: '2.5px' }}>REGLAS</span>
-          <span style={{ fontSize: '13px', color: pct === 100 ? '#3DDB82' : '#7A7A8C', fontWeight: 600, letterSpacing: '0.3px', transition: 'color 0.3s' }}>
+          <span className="text-label" style={{ color: 'var(--t3)', letterSpacing: '2.5px' }}>REGLAS</span>
+          <motion.span
+            animate={{ color: pct === 100 ? 'var(--green)' : 'var(--t3)' }}
+            transition={{ duration: 0.4 }}
+            style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px' }}
+          >
             {done}/{total} · {pct}%
-          </span>
+          </motion.span>
         </div>
         <ProgressBar value={pct} height={3} shimmer={pct < 100} />
       </div>
 
       <motion.div
         variants={staggerContainer} initial="hidden" animate="show"
-        style={{ padding: '16px 16px', display: 'flex', flexDirection: 'column', gap: '9px' }}
+        style={{ padding: '8px 16px 24px', display: 'flex', flexDirection: 'column', gap: '8px' }}
       >
+
+        {/* ── Reglas ── */}
         <AnimatePresence>
-          {rules.map(rule => (
-            <motion.div
-              key={rule.id}
-              variants={cardEntrance}
-              layout
-              exit={{ opacity: 0, scale: 0.94, height: 0, transition: { duration: 0.22 } }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '14px',
-                padding: '16px 18px', borderRadius: '18px',
-                background: checks[rule.id]
-                  ? 'linear-gradient(135deg, rgba(61,219,130,0.06) 0%, rgba(61,219,130,0.02) 100%)'
-                  : 'rgba(255,255,255,0.04)',
-                backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-                border: `1px solid ${checks[rule.id] ? 'rgba(61,219,130,0.14)' : 'rgba(255,255,255,0.07)'}`,
-                boxShadow: checks[rule.id]
-                  ? '0 4px 20px rgba(0,0,0,0.25), 0 0 0 1px rgba(61,219,130,0.06) inset'
-                  : '0 4px 20px rgba(0,0,0,0.22), 0 1px 0 rgba(255,255,255,0.06) inset',
-                transition: 'border 0.25s ease, background 0.25s ease, box-shadow 0.25s ease',
-                opacity: rule.enabled ? 1 : 0.5,
-              }}
-            >
-              <CustomCheckbox
-                checked={!!checks[rule.id]}
-                onChange={() => rule.enabled && toggleCheck(rule.id)}
-                size={26}
-              />
-
-              {/* Text or edit input */}
-              {editingId === rule.id ? (
-                <input
-                  value={editingText}
-                  onChange={(e) => setEditingText(e.target.value)}
-                  onBlur={saveEdit}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') saveEdit();
-                    if (e.key === 'Escape') { setEditingId(null); setEditingText(''); }
-                  }}
-                  autoFocus
-                  style={{
-                    flex: 1,
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#EFEFF4',
-                    fontSize: '15px',
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                  }}
+          {rules.map(rule => {
+            const isChecked = !!checks[rule.id];
+            return (
+              <motion.div
+                key={rule.id}
+                variants={cardEntrance}
+                layout
+                exit={{ opacity: 0, scale: 0.94, y: -4, transition: { duration: 0.2 } }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '14px',
+                  padding: '16px 18px', borderRadius: 'var(--r-lg)',
+                  background: isChecked
+                    ? 'linear-gradient(135deg, rgba(48,209,88,0.07) 0%, rgba(48,209,88,0.03) 100%)'
+                    : 'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+                  backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+                  border: `0.5px solid ${isChecked ? 'rgba(48,209,88,0.18)' : 'rgba(255,255,255,0.08)'}`,
+                  borderTopColor: isChecked ? 'rgba(48,209,88,0.28)' : 'rgba(255,255,255,0.14)',
+                  boxShadow: isChecked
+                    ? '0 0 0 0.5px rgba(48,209,88,0.08), 0 4px 16px rgba(0,0,0,0.3), 0 0 24px rgba(48,209,88,0.06)'
+                    : 'var(--shadow-card)',
+                  opacity: rule.enabled ? 1 : 0.45,
+                  transition: 'border 0.25s ease, background 0.25s ease, box-shadow 0.25s ease',
+                }}
+              >
+                <CustomCheckbox
+                  checked={isChecked}
+                  onChange={() => rule.enabled && toggleCheck(rule.id)}
+                  size={26}
                 />
-              ) : (
-                <span style={{
-                  flex: 1, fontSize: '15px', lineHeight: 1.5,
-                  color: checks[rule.id] ? '#7A7A8C' : '#EFEFF4',
-                  textDecoration: checks[rule.id] ? 'line-through' : 'none',
-                  fontWeight: checks[rule.id] ? 400 : 500,
-                  transition: 'all 0.2s ease',
-                }}>
-                  {rule.text}
-                </span>
-              )}
 
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => startEdit(rule)}
-                  aria-label="Editar regla"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3E3E52', padding: '4px', borderRadius: '6px' }}
-                >
-                  <Pencil size={14} strokeWidth={2} />
-                </motion.button>
-                {rule.custom && (
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => deleteRule(rule.id)}
-                    aria-label="Eliminar regla"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3E3E52', padding: '4px', borderRadius: '6px' }}
-                  >
-                    <X size={14} strokeWidth={2} />
-                  </motion.button>
+                {editingId === rule.id ? (
+                  <input
+                    value={editingText}
+                    onChange={e => setEditingText(e.target.value)}
+                    onBlur={saveEdit}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') saveEdit();
+                      if (e.key === 'Escape') { setEditingId(null); setEditingText(''); }
+                    }}
+                    autoFocus
+                    style={{
+                      flex: 1, background: 'transparent', border: 'none',
+                      color: 'var(--t1)', fontSize: '15px', outline: 'none', fontFamily: 'inherit',
+                    }}
+                  />
+                ) : (
+                  <span style={{
+                    flex: 1, fontSize: '15px', lineHeight: 1.5, letterSpacing: '-0.01em',
+                    color: isChecked ? 'var(--t3)' : 'var(--t1)',
+                    textDecoration: isChecked ? 'line-through' : 'none',
+                    fontWeight: isChecked ? 400 : 500,
+                    transition: 'all 0.2s ease',
+                  }}>
+                    {rule.text}
+                  </span>
                 )}
-              </div>
-            </motion.div>
-          ))}
+
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <motion.button
+                    whileTap={{ scale: 0.85 }}
+                    transition={springs.snappy}
+                    onClick={() => startEdit(rule)}
+                    aria-label="Editar"
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'var(--t4)', padding: '6px', borderRadius: 'var(--r-sm)',
+                      transition: 'color 0.15s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--t2)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--t4)')}
+                  >
+                    <Pencil size={13} strokeWidth={2} />
+                  </motion.button>
+                  {rule.custom && (
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      transition={springs.snappy}
+                      onClick={() => deleteRule(rule.id)}
+                      aria-label="Eliminar"
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: 'var(--t4)', padding: '6px', borderRadius: 'var(--r-sm)',
+                        transition: 'color 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--t4)')}
+                    >
+                      <X size={13} strokeWidth={2} />
+                    </motion.button>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
-        {/* All done card */}
+        {/* ── All Done banner ── */}
         <AnimatePresence>
           {allDone && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-              style={{
-                padding: '20px', borderRadius: '18px',
-                background: 'linear-gradient(135deg, rgba(61,219,130,0.10) 0%, rgba(61,219,130,0.05) 100%)',
-                border: '1px solid rgba(61,219,130,0.22)',
-                boxShadow: '0 0 24px rgba(61,219,130,0.08)',
-                textAlign: 'center',
-                color: '#EFEFF4', fontSize: '15px', fontWeight: 500, letterSpacing: '-0.2px',
-              }}
+              transition={springs.medium}
+              className="glass-2"
+              style={{ padding: '22px', textAlign: 'center' }}
             >
-              ✦&nbsp; Código completo hoy.
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                <CheckCheck size={18} color="var(--green)" strokeWidth={2} />
+                <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--t1)', letterSpacing: '-0.02em' }}>
+                  Código completo hoy.
+                </span>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--t3)', marginTop: '6px', fontStyle: 'italic' }}>
+                Eso es exactamente lo que tenías que hacer.
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Add rule */}
+        {/* ── Añadir regla ── */}
         {rules.length < 8 && (
           <AnimatePresence mode="wait">
             {adding ? (
@@ -262,9 +305,12 @@ export default function CodigoPage() {
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 style={{
-                  padding: '16px 18px', borderRadius: '18px',
+                  padding: '16px 18px', borderRadius: 'var(--r-lg)',
                   background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+                  border: '0.5px solid rgba(48,209,88,0.25)',
+                  borderTopColor: 'rgba(48,209,88,0.40)',
+                  boxShadow: '0 0 0 3px rgba(48,209,88,0.06)',
                   overflow: 'hidden',
                 }}
               >
@@ -273,11 +319,14 @@ export default function CodigoPage() {
                   placeholder="Escribe tu propia regla..."
                   value={newText}
                   onChange={e => setNewText(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') addRule(); if (e.key === 'Escape') { setAdding(false); setNewText(''); } }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') addRule();
+                    if (e.key === 'Escape') { setAdding(false); setNewText(''); }
+                  }}
                   onBlur={addRule}
                   style={{
                     width: '100%', background: 'transparent', border: 'none',
-                    color: '#EFEFF4', fontSize: '15px', outline: 'none', fontFamily: 'inherit',
+                    color: 'var(--t1)', fontSize: '15px', outline: 'none', fontFamily: 'inherit',
                   }}
                 />
               </motion.div>
@@ -286,68 +335,100 @@ export default function CodigoPage() {
                 key="btn"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 whileTap={{ scale: 0.97 }}
+                transition={springs.snappy}
                 onClick={() => setAdding(true)}
                 style={{
-                  width: '100%', padding: '16px 18px', borderRadius: '18px',
+                  width: '100%', padding: '16px 18px', borderRadius: 'var(--r-lg)',
                   background: 'transparent',
-                  border: '1px dashed rgba(255,255,255,0.09)',
-                  color: '#3E3E52', fontSize: '14px', cursor: 'pointer',
+                  border: '0.5px dashed var(--border-subtle)',
+                  color: 'var(--t4)', fontSize: '14px', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  transition: 'border 0.2s, color 0.2s',
+                  transition: 'border-color 0.2s, color 0.2s',
                 }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-mid)'; e.currentTarget.style.color = 'var(--t3)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.color = 'var(--t4)'; }}
               >
-                <Plus size={15} strokeWidth={2} /> Nueva regla
+                <Plus size={15} strokeWidth={2} />
+                Nueva regla
               </motion.button>
             )}
           </AnimatePresence>
         )}
 
-        {/* ── Badges grid ── */}
-        <motion.div variants={cardEntrance} style={{ marginTop: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span className="text-label" style={{ color: '#7A7A8C', letterSpacing: '2.2px' }}>BADGES</span>
-            <span style={{ fontSize: '12px', color: '#3E3E52' }}>{unlocked.size}/{badgeDefinitions.length}</span>
+        {/* ─────────────────────────────────────
+            BADGES
+        ───────────────────────────────────── */}
+        <motion.div variants={cardEntrance} style={{ marginTop: '16px' }}>
+
+          {/* Sección header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', padding: '0 2px' }}>
+            <span className="text-label" style={{ color: 'var(--t3)', letterSpacing: '2.5px' }}>BADGES</span>
+            <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>
+              {unlocked.size}/{badgeDefinitions.length}
+            </span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-            {badgeDefinitions.map((b) => {
+            {badgeDefinitions.map(b => {
               const isUnlocked = unlocked.has(b.id);
-              const rarity = rarityStyles[b.rarity];
+              const cfg = rarityConfig[b.rarity];
+
               return (
-                <div
+                <motion.div
                   key={b.id}
-                  className={b.rarity === 'legendary' ? 'legendary-shine' : ''}
+                  whileHover={isUnlocked ? { scale: 1.02 } : {}}
+                  transition={springs.snappy}
+                  className={b.rarity === 'legendary' && isUnlocked ? 'legendary-shine' : ''}
                   style={{
-                    padding: '12px', borderRadius: '14px',
-                    background: isUnlocked
-                      ? 'rgba(255,255,255,0.05)'
-                      : 'rgba(255,255,255,0.02)',
+                    padding: '13px', borderRadius: 'var(--r-lg)',
+                    background: isUnlocked ? cfg.bg : 'rgba(255,255,255,0.02)',
                     backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                    border: `1px solid ${rarity.border}`,
-                    boxShadow: rarity.glow ?? 'none',
-                    opacity: isUnlocked ? 1 : 0.45,
-                    transition: 'opacity 0.2s ease',
+                    border: `0.5px solid ${isUnlocked ? cfg.border : 'var(--border-dim)'}`,
+                    borderTopColor: isUnlocked ? cfg.border : 'var(--border-dim)',
+                    boxShadow: isUnlocked ? (cfg.glow ?? 'var(--shadow-card)') : 'none',
+                    opacity: isUnlocked ? 1 : 0.4,
+                    transition: 'opacity 0.3s ease, box-shadow 0.3s ease',
+                    position: 'relative', overflow: 'hidden',
                   }}
                 >
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        width: 36, height: 36, borderRadius: '10px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        fontSize: '16px', color: rarity.color, fontWeight: 700,
-                      }}
-                    >
+                  {/* Shimmer al desbloquear */}
+                  {isUnlocked && <div className="milestone-unlocked" style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', overflow: 'hidden' }} />}
+
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+                    <div style={{
+                      width: 38, height: 38, borderRadius: 'var(--r-md)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: isUnlocked ? `rgba(255,255,255,0.07)` : 'rgba(255,255,255,0.03)',
+                      border: `0.5px solid ${isUnlocked ? cfg.border : 'var(--border-dim)'}`,
+                      fontSize: '16px',
+                      boxShadow: isUnlocked && cfg.glow ? cfg.glow : 'none',
+                      flexShrink: 0,
+                    }}>
                       {b.icon}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#EFEFF4', letterSpacing: '-0.2px' }}>{b.name}</div>
-                      <div style={{ fontSize: '9px', color: rarity.color, letterSpacing: '1px', textTransform: 'uppercase', marginTop: '2px' }}>{rarity.label}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: '13px', fontWeight: 700, color: isUnlocked ? 'var(--t1)' : 'var(--t4)',
+                        letterSpacing: '-0.02em', lineHeight: 1.2,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {b.name}
+                      </div>
+                      <div style={{
+                        fontSize: '9px', color: isUnlocked ? cfg.color : 'var(--t4)',
+                        letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '3px', fontWeight: 700,
+                      }}>
+                        {cfg.label}
+                      </div>
                     </div>
                   </div>
-                  <p style={{ fontSize: '11px', color: '#7A7A8C', lineHeight: 1.4, marginTop: '8px' }}>{b.description}</p>
-                </div>
+                  <p style={{
+                    fontSize: '11px', color: isUnlocked ? 'var(--t3)' : 'var(--t4)',
+                    lineHeight: 1.4, marginTop: '9px', position: 'relative', zIndex: 1,
+                  }}>
+                    {b.description}
+                  </p>
+                </motion.div>
               );
             })}
           </div>
