@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage, Rule } from '@/lib/storage';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
-import { staggerContainer, cardEntrance, easeCustom } from '@/lib/animations';
+import { staggerContainer, cardEntrance, easeCustom, springs } from '@/lib/animations';
 import { Plus, Check } from 'lucide-react';
 
 const defaultRules: Rule[] = [

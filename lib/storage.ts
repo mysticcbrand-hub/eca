@@ -20,7 +20,10 @@ export interface Victory {
 
 export interface HistoryEntry {
   date: string;
-  status: 'done' | 'relapse';
+  completed: boolean;
+  streak: number;
+  /** @deprecated use completed instead */
+  status?: 'done' | 'relapse';
 }
 
 function get(key: string): string | null {
@@ -93,6 +96,10 @@ export const storage = {
   getProjectMain: () => get('eca_project_main') ?? '',
   setProjectMain: (s: string) => set('eca_project_main', s),
 
+  // Aliases for proyecto/page.tsx
+  getProject: () => get('eca_project_main') ?? '',
+  setProject: (s: string) => set('eca_project_main', s),
+
   getVictories: () => getJSON<Victory[]>('eca_victories', []),
   setVictories: (v: Victory[]) => setJSON('eca_victories', v),
   addVictory: (v: Victory) => {
@@ -101,8 +108,8 @@ export const storage = {
     storage.setVictories(arr);
   },
 
-  getDailyGoal: (date: string) => get(`eca_daily_goal_${date}`) ?? '',
-  setDailyGoal: (date: string, text: string) => set(`eca_daily_goal_${date}`, text),
+  getDailyGoal: (date: string) => getJSON<{ text: string; done: boolean } | null>(`eca_daily_goal_${date}`, null),
+  setDailyGoal: (date: string, goal: { text: string; done: boolean }) => setJSON(`eca_daily_goal_${date}`, goal),
 
   getChecks: (date: string) => getJSON<Record<string, boolean>>(`eca_checks_${date}`, {}),
   setChecks: (date: string, checks: Record<string, boolean>) => setJSON(`eca_checks_${date}`, checks),

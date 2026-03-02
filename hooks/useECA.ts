@@ -33,7 +33,7 @@ export function useECA() {
     storage.setBestStreak(newBest);
     storage.setTotalDays(newTotal);
     storage.setLastCheckin(today);
-    storage.addHistory({ date: today, status: 'done' });
+    storage.addHistory({ date: today, completed: true, streak: newStreak });
     setStreakState(newStreak);
     setBestStreakState(newBest);
     setTotalDaysState(newTotal);
@@ -51,7 +51,7 @@ export function useECA() {
     storage.setBestStreak(newBest);
     storage.setStreak(0);
     storage.setLastCheckin(null);
-    storage.addHistory({ date: today, status: 'relapse' });
+    storage.addHistory({ date: today, completed: false, streak: 0 });
     setRelapsesState(storage.getRelapses());
     setBestStreakState(newBest);
     setStreakState(0);
