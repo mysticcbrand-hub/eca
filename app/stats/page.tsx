@@ -1,8 +1,10 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, type ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { storage, todayStr } from '@/lib/storage';
+import { Toast } from '@/components/ui/Toast';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { getLast30Days, getStreakHistory, getCurrentMonthCalendar } from '@/lib/chartData';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { staggerContainer, cardEntrance } from '@/lib/animations';
@@ -124,9 +126,12 @@ export default function StatsPage() {
   const [relapses, setRelapses] = useState<{ date: string; days_reached: number; trigger: string }[]>([]);
   const [rulesTotal, setRulesTotal] = useState(0);
   const [rulesDone, setRulesDone] = useState(0);
+  const [showDeleteSheet, setShowDeleteSheet] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [importError, setImportError] = useState('');
 
-  useEffect(() => {
-    setMounted(true);
+  const refreshStats = useCallback(() => {
     setStreak(storage.getStreak());
     setBest(storage.getBestStreak());
     setTotal(storage.getTotalDays());
@@ -139,11 +144,85 @@ export default function StatsPage() {
     setRulesDone(rules.filter(r => checks[r.id]).length);
   }, []);
 
+  useEffect(() => {
+    setMounted(true);
+    refreshStats();
+  }, [refreshStats]);
+
   const last30       = useMemo(() => mounted ? getLast30Days()           : [], [mounted]);
   const streakHist   = useMemo(() => mounted ? getStreakHistory()         : [], [mounted]);
   const calendarData = useMemo(() => mounted ? getCurrentMonthCalendar() : [], [mounted]);
 
   const isRecord = streak > 0 && streak >= best && streak > 1;
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    setToastVisible(true);
+  }, []);
+
+  const handleExport = useCallback(() => {
+    try {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        data: storage.exportData(),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `eca-backup-${todayStr()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast('Backup descargado.');
+    } catch {
+      showToast('No se pudo exportar.');
+    }
+  }, [showToast]);
+
+  const applyImport = useCallback((data: Record<string, string>) => {
+    storage.clearAll();
+    storage.importData(data);
+    refreshStats();
+  }, [refreshStats]);
+
+  const handleImportFile = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setImportError('');
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result ?? '{}')) as { data?: Record<string, string> };
+        const payload = parsed.data ?? parsed;
+        if (!payload || typeof payload !== 'object') {
+          setImportError('Archivo inválido.');
+          return;
+        }
+        const entries = Object.entries(payload).filter(([key, value]) => key.startsWith('eca_') && typeof value === 'string');
+        if (entries.length === 0) {
+          setImportError('Sin datos ECA válidos.');
+          return;
+        }
+        applyImport(Object.fromEntries(entries));
+        showToast('Datos importados.');
+      } catch {
+        setImportError('No se pudo leer el archivo.');
+      } finally {
+        event.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  }, [applyImport, showToast]);
+
+  const confirmDelete = useCallback(() => {
+    storage.clearAll();
+    refreshStats();
+    setShowDeleteSheet(false);
+    showToast('Datos eliminados.');
+  }, [refreshStats, showToast]);
 
   const badgeStats = useMemo(() => ({
     streak,
@@ -321,7 +400,98 @@ export default function StatsPage() {
             </div>
           )}
         </StatSection>
+
+        {/* ── Data management ── */}
+        <StatSection label="DATOS">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <button
+                onClick={handleExport}
+                style={{
+                  padding: '14px 16px', borderRadius: '16px',
+                  background: 'rgba(61,219,130,0.08)',
+                  border: '1px solid rgba(61,219,130,0.25)',
+                  color: '#3DDB82', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase',
+                  cursor: 'pointer',
+                }}
+              >
+                Exportar
+              </button>
+              <label
+                style={{
+                  padding: '14px 16px', borderRadius: '16px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#EFEFF4', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase',
+                  cursor: 'pointer', textAlign: 'center',
+                }}
+              >
+                Importar
+                <input type="file" accept="application/json" onChange={handleImportFile} style={{ display: 'none' }} />
+              </label>
+            </div>
+
+            {importError && (
+              <p style={{ fontSize: '12px', color: '#FF4D4D', textAlign: 'center' }}>{importError}</p>
+            )}
+
+            <div style={{
+              padding: '14px 16px', borderRadius: '16px',
+              background: 'rgba(255,77,77,0.08)',
+              border: '1px solid rgba(255,77,77,0.22)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+            }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#FF4D4D', textTransform: 'uppercase' }}>Borrar datos</div>
+                <div style={{ fontSize: '12px', color: '#7A7A8C', marginTop: '4px' }}>Reinicia la app y tus rachas.</div>
+              </div>
+              <button
+                onClick={() => setShowDeleteSheet(true)}
+                style={{
+                  padding: '8px 14px', borderRadius: '9999px',
+                  background: 'rgba(255,77,77,0.14)',
+                  border: '1px solid rgba(255,77,77,0.35)',
+                  color: '#FF4D4D', fontSize: '11px', fontWeight: 700, letterSpacing: '1px',
+                  cursor: 'pointer', textTransform: 'uppercase',
+                }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </StatSection>
       </motion.div>
+
+      <BottomSheet open={showDeleteSheet} onClose={() => setShowDeleteSheet(false)}>
+        <div style={{ padding: '28px 20px 32px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div>
+            <h3 className="text-title" style={{ color: '#EFEFF4', marginBottom: '6px' }}>Borrar todos los datos</h3>
+            <p style={{ fontSize: '14px', color: '#7A7A8C', lineHeight: 1.6 }}>
+              Esta acción elimina rachas, objetivos, historial y badges. No se puede deshacer.
+            </p>
+          </div>
+          <button
+            onClick={confirmDelete}
+            style={{
+              width: '100%', height: '52px', borderRadius: '16px',
+              background: 'rgba(255,77,77,0.12)',
+              border: '1px solid rgba(255,77,77,0.4)',
+              color: '#FF4D4D', fontSize: '12px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
+          >
+            Borrar definitivamente
+          </button>
+          <button
+            onClick={() => setShowDeleteSheet(false)}
+            style={{ background: 'none', border: 'none', color: '#3E3E52', fontSize: '14px', cursor: 'pointer' }}
+          >
+            Cancelar
+          </button>
+        </div>
+      </BottomSheet>
+
+      <Toast message={toastMessage} visible={toastVisible} onHide={() => setToastVisible(false)} />
     </PageWrapper>
   );
 }

@@ -43,6 +43,16 @@ function setJSON<T>(key: string, value: T): void {
   set(key, JSON.stringify(value));
 }
 
+function listEcaKeys(): string[] {
+  if (typeof window === 'undefined') return [];
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith('eca_')) keys.push(key);
+  }
+  return keys;
+}
+
 // --- ECA Core ---
 export const storage = {
   isOnboarded: () => get('eca_onboarded') === 'true',
@@ -110,6 +120,26 @@ export const storage = {
     if (idx >= 0) arr[idx] = entry;
     else arr.push(entry);
     storage.setHistory(arr);
+  },
+
+  exportData: () => {
+    const keys = listEcaKeys();
+    const data: Record<string, string> = {};
+    keys.forEach(key => {
+      const value = get(key);
+      if (value !== null) data[key] = value;
+    });
+    return data;
+  },
+  importData: (data: Record<string, string>) => {
+    if (typeof window === 'undefined') return;
+    Object.entries(data).forEach(([key, value]) => {
+      if (key.startsWith('eca_')) set(key, value);
+    });
+  },
+  clearAll: () => {
+    if (typeof window === 'undefined') return;
+    listEcaKeys().forEach(key => localStorage.removeItem(key));
   },
 };
 
