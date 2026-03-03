@@ -234,8 +234,32 @@ export default function CodigoPage() {
                   </span>
                 )}
 
-                {/* Reorder + Edit controls */}
+                {/* Focus + Reorder + Edit controls */}
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {!isChecked && (!focusRuleId || isFocused) && (
+                    isFocused ? (
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        transition={springs.snappy}
+                        onClick={cancelFocus}
+                        aria-label="Detener enfoque"
+                        style={{ background: 'none', border: 'none', color: 'var(--t3)', padding: 6, cursor: 'pointer' }}
+                      >
+                        <Square size={14} />
+                      </motion.button>
+                    ) : (
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        transition={springs.snappy}
+                        onClick={() => startFocus(rule.id)}
+                        aria-label="Enfocar 25 min"
+                        style={{ background: 'none', border: 'none', color: 'var(--t3)', padding: 6, cursor: 'pointer' }}
+                      >
+                        <PlayCircle size={16} />
+                      </motion.button>
+                    )
+                  )}
+
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     transition={springs.snappy}
