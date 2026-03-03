@@ -1,44 +1,45 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<svg width='192' height='192' viewBox='0 0 192 192' xmlns='http://www.w3.org/2000/svg'>
+<svg width="192" height="192" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'>
-      <stop offset='0%' stop-color='#0B0B10'/>
-      <stop offset='100%' stop-color='#07070A'/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B0B12"/>
+      <stop offset="100%" stop-color="#141421"/>
     </linearGradient>
-    <radialGradient id='mesh1' cx='20%' cy='20%' r='60%'>
-      <stop offset='0%' stop-color='#3DDB82' stop-opacity='0.20'/>
-      <stop offset='60%' stop-color='#2AB86A' stop-opacity='0.10'/>
-      <stop offset='100%' stop-color='#0D0D12' stop-opacity='0'/>
+    <radialGradient id="hl" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(210 170) rotate(45) scale(420 320)">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+      <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id='mesh2' cx='80%' cy='25%' r='55%'>
-      <stop offset='0%' stop-color='#4D9EFF' stop-opacity='0.12'/>
-      <stop offset='65%' stop-color='#2AB86A' stop-opacity='0.06'/>
-      <stop offset='100%' stop-color='#0D0D12' stop-opacity='0'/>
-    </radialGradient>
-    <radialGradient id='mesh3' cx='50%' cy='85%' r='65%'>
-      <stop offset='0%' stop-color='#2AB86A' stop-opacity='0.14'/>
-      <stop offset='60%' stop-color='#1D9958' stop-opacity='0.06'/>
-      <stop offset='100%' stop-color='#0D0D12' stop-opacity='0'/>
-    </radialGradient>
-    <linearGradient id='text' x1='0%' y1='0%' x2='100%' y2='100%'>
-      <stop offset='0%' stop-color='#EFEFF4'/>
-      <stop offset='70%' stop-color='#EFEFF4'/>
-      <stop offset='100%' stop-color='#3DDB82'/>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1A9E45"/>
+      <stop offset="45%" stop-color="#30D158"/>
+      <stop offset="85%" stop-color="#0A84FF"/>
     </linearGradient>
-    <filter id='glow'>
-      <feGaussianBlur stdDeviation='1.536' result='b'/>
-      <feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge>
+    <filter id="inner" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/>
+      <feComposite in="SourceGraphic" in2="b" operator="atop"/>
+    </filter>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.45"/>
     </filter>
   </defs>
 
-  <rect width='192' height='192' rx='42.24' fill='url(#bg)'/>
-  <rect width='192' height='192' rx='42.24' fill='url(#mesh1)'/>
-  <rect width='192' height='192' rx='42.24' fill='url(#mesh2)'/>
-  <rect width='192' height='192' rx='42.24' fill='url(#mesh3)'/>
+  <!-- Background rounded square -->
+  <rect x="64" y="64" width="896" height="896" rx="220" fill="url(#bg)"/>
+  <!-- Subtle top-left specular highlight -->
+  <rect x="64" y="64" width="896" height="420" rx="220" fill="url(#hl)"/>
 
-  <text x='50%' y='103.68' font-family='-apple-system,BlinkMacSystemFont,Helvetica Neue,sans-serif'
-    font-weight='800' font-size='65.28' fill='url(#text)'
-    text-anchor='middle' dominant-baseline='middle' letter-spacing='-3.2640000000000002' filter='url(#glow)'>ECA</text>
+  <!-- Ambient inner vignette -->
+  <circle cx="512" cy="560" r="420" fill="#000" opacity="0.18"/>
 
-  <rect width='192' height='192' rx='42.24' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1.1'/>
+  <!-- Context ring (C) -->
+  <circle cx="512" cy="512" r="250" fill="none" stroke="url(#ring)" stroke-width="34" stroke-linecap="round" filter="url(#shadow)"/>
+
+  <!-- Monogram E (glass) -->
+  <g filter="url(#inner)" opacity="0.96">
+    <rect x="362" y="350" width="220" height="40" rx="20" fill="rgba(255,255,255,0.22)" stroke="rgba(255,255,255,0.35)" stroke-width="0.5"/>
+    <rect x="362" y="492" width="180" height="40" rx="20" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.28)" stroke-width="0.5"/>
+    <rect x="362" y="634" width="240" height="40" rx="20" fill="rgba(255,255,255,0.22)" stroke="rgba(255,255,255,0.35)" stroke-width="0.5"/>
+  </g>
+
+  <!-- Accent glow under ring -->
+  <ellipse cx="512" cy="720" rx="250" ry="70" fill="#30D158" opacity="0.06"/>
 </svg>
