@@ -1,18 +1,20 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Clock, AlertTriangle, Check } from 'lucide-react';
 import { useECA } from '@/hooks/useECA';
 import { useAmbientGlow } from '@/hooks/useAmbientGlow';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
-import { storage } from '@/lib/storage';
+import { storage, todayStr } from '@/lib/storage';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Toast } from '@/components/ui/Toast';
+import { ContextualBadgePill } from '@/components/ui/ContextualBadgePill';
 import { staggerContainer, cardEntrance, springs } from '@/lib/animations';
 import { cumplimientoMessages, recaidaMessages, getRandomMessage } from '@/lib/quotes';
+import { computeBadges, getContextualBadge } from '@/lib/badges';
 
 const TRIGGERS = [
   'Estrés acumulado',
@@ -73,6 +75,25 @@ export default function TodayPage() {
   const { glowStyle, triggerSuccess, triggerRelapse } = useAmbientGlow();
   const quote  = useDailyQuote();
   const ripple = useRipple();
+
+  // Contextual badge — computed fresh on mount
+  const contextualBadge = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const today   = todayStr();
+    const rules   = storage.getRules();
+    const checks  = storage.getChecks(today);
+    const history = storage.getUnlockedBadgeHistory?.() ?? {};
+    const badges  = computeBadges({
+      streak, bestStreak, totalDays,
+      relapses: storage.getRelapses(),
+      victories: storage.getVictories(),
+      rules, checks,
+      isComeback: false,
+      comebackStreak: 0,
+      unlockedBadgeHistory: history,
+    });
+    return getContextualBadge(badges);
+  }, [streak, bestStreak, totalDays]);
 
   useEffect(() => {
     setMounted(true);
@@ -231,6 +252,13 @@ export default function TodayPage() {
             &ldquo;{quote}&rdquo;
           </p>
         </motion.div>
+
+        {/* ── Contextual Badge Pill ── */}
+        {contextualBadge && (
+          <motion.div variants={cardEntrance} style={{ display: 'flex', justifyContent: 'center' }}>
+            <ContextualBadgePill badge={contextualBadge} />
+          </motion.div>
+        )}
 
         {/* ── Quick Stats ── */}
         <motion.div variants={staggerContainer} style={{ display: 'flex', gap: '8px' }}>

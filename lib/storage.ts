@@ -116,9 +116,6 @@ export const storage = {
 
   getHistory: () => getJSON<HistoryEntry[]>('eca_history', []),
 
-  getBadgesUnlocked: () => getJSON<string[]>('eca_badges_unlocked', []),
-  setBadgesUnlocked: (ids: string[]) => setJSON('eca_badges_unlocked', ids),
-  hasBadgesUnlocked: () => (typeof window !== 'undefined' ? localStorage.getItem('eca_badges_unlocked') !== null : false),
   setHistory: (h: HistoryEntry[]) => setJSON('eca_history', h),
   addHistory: (entry: HistoryEntry) => {
     const arr = storage.getHistory();
@@ -128,6 +125,13 @@ export const storage = {
     else arr.push(entry);
     storage.setHistory(arr);
   },
+
+  getBadgesUnlocked: (): string[] => getJSON<string[]>('eca_badges_unlocked', []),
+  setBadgesUnlocked: (ids: string[]) => setJSON('eca_badges_unlocked', ids),
+  hasBadgesUnlocked: (): boolean => get('eca_badges_unlocked') !== null,
+
+  getUnlockedBadgeHistory: (): Record<string, string> => getJSON<Record<string, string>>('eca_badges_history', {}),
+  setUnlockedBadgeHistory: (h: Record<string, string>) => setJSON('eca_badges_history', h),
 
   exportData: () => {
     const keys = listEcaKeys();

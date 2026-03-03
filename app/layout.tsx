@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { BadgeDetailProvider } from '@/hooks/useBadgeDetail';
+import { BadgeDetailSheet } from '@/components/ui/BadgeDetailSheet';
 
 export const metadata: Metadata = {
   title: 'ECA — Sistema Mental',
@@ -58,33 +60,38 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           left: 0,
         }}
       >
-        {/* Centred app shell — 430px max on desktop */}
-        <div
-          id="app-shell"
-          style={{
-            position: 'relative',
-            width: '100%',
-            maxWidth: '430px',
-            height: '100dvh',
-            margin: '0 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            background: '#09090E',
-          }}
-        >
-          {/* Page content — scrollable region */}
+        <BadgeDetailProvider>
+          {/* Centred app shell — 430px max on desktop */}
           <div
-            id="page-content"
-            className="page-scroll"
-            style={{ flex: 1, position: 'relative', overflow: 'hidden auto', paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
+            id="app-shell"
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: '430px',
+              height: '100dvh',
+              margin: '0 auto',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              background: '#09090E',
+            }}
           >
-            {children}
+            {/* Page content — scrollable region */}
+            <div
+              id="page-content"
+              className="page-scroll"
+              style={{ flex: 1, position: 'relative', overflow: 'hidden auto', paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
+            >
+              {children}
+            </div>
+
+            {/* Fixed bottom nav inside shell */}
+            <BottomNav />
           </div>
 
-          {/* Fixed bottom nav inside shell */}
-          <BottomNav />
-        </div>
+          {/* Badge detail sheet — singleton, renders once for the whole app */}
+          <BadgeDetailSheet />
+        </BadgeDetailProvider>
 
         {/* Desktop sidebar blur for > 430px screens */}
         <style>{`

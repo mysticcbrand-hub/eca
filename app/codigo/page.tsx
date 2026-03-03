@@ -7,10 +7,11 @@ import { PageWrapper } from '@/components/layout/PageWrapper';
 import { CustomCheckbox } from '@/components/ui/CustomCheckbox';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { staggerContainer, cardEntrance, springs } from '@/lib/animations';
-import { badgeDefinitions, evaluateBadges, BadgeRarity, BadgeDefinition } from '@/lib/badges';
+import { BADGE_DEFINITIONS, computeBadges, type BadgeDefinition } from '@/lib/badges';
 import { BadgeToast } from '@/components/ui/BadgeToast';
 
 /* ── Rarity visual system ───────────────── */
+type BadgeRarity = 'common' | 'rare' | 'epic' | 'legendary';
 const rarityConfig: Record<BadgeRarity, {
   label: string; color: string; border: string;
   bg: string; glow?: string; textGlow?: string;
@@ -110,17 +111,22 @@ export default function CodigoPage() {
   const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
   const allDone = total > 0 && done === total;
 
-  const badgeStats = useMemo(() => ({
-    streak:              storage.getStreak(),
-    bestStreak:          storage.getBestStreak(),
-    totalDays:           storage.getTotalDays(),
-    relapses:            storage.getRelapses().length,
-    victories:           storage.getVictories().length,
-    rulesCompletedToday: done,
-    rulesTotalToday:     total,
-  }), [done, total]);
-
-  const unlocked = useMemo(() => new Set(evaluateBadges(badgeStats)), [badgeStats]);
+  const unlocked = useMemo(() => {
+    if (typeof window === 'undefined') return new Set<string>();
+    const badges = computeBadges({
+      streak:      storage.getStreak(),
+      bestStreak:  storage.getBestStreak(),
+      totalDays:   storage.getTotalDays(),
+      relapses:    storage.getRelapses(),
+      victories:   storage.getVictories(),
+      rules,
+      checks,
+      isComeback:      false,
+      comebackStreak:  0,
+      unlockedBadgeHistory: storage.getUnlockedBadgeHistory?.() ?? {},
+    });
+    return new Set(badges.filter(b => b.status === 'unlocked').map(b => b.id));
+  }, [rules, checks]);
 
   useEffect(() => {
     const previous = new Set(storage.getBadgesUnlocked());
@@ -131,7 +137,7 @@ export default function CodigoPage() {
       return;
     }
     if (newlyUnlocked.length > 0) {
-      const newBadges = badgeDefinitions.filter(b => newlyUnlocked.includes(b.id));
+      const newBadges = BADGE_DEFINITIONS.filter(b => newlyUnlocked.includes(b.id));
       setBadgeQueue(prev => [...prev, ...newBadges]);
       storage.setBadgesUnlocked(Array.from(new Set([...current, ...Array.from(previous)])));
     }
@@ -364,14 +370,14 @@ export default function CodigoPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', padding: '0 2px' }}>
             <span className="text-label" style={{ color: 'var(--t3)', letterSpacing: '2.5px' }}>BADGES</span>
             <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>
-              {unlocked.size}/{badgeDefinitions.length}
+              {unlocked.size}/{BADGE_DEFINITIONS.length}
             </span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-            {badgeDefinitions.map(b => {
+            {BADGE_DEFINITIONS.map(b => {
               const isUnlocked = unlocked.has(b.id);
-              const cfg = rarityConfig[b.rarity];
+              const cfg = rarityConfig[(b.rarity ?? 'common') as BadgeRarity];
 
               return (
                 <motion.div

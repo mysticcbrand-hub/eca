@@ -5,13 +5,15 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, BarChart, Bar
 } from 'recharts';
-import { TrendingUp, Zap, Calendar, Award, Download, Upload, Trash2 } from 'lucide-react';
+import { TrendingUp, Zap, Calendar, Award, Download, Upload, Trash2, Lock,
+  Flame, Shield, Star, Crown, RefreshCw, Sword, CheckSquare, Target, Layers } from 'lucide-react';
 import { storage, todayStr } from '@/lib/storage';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Toast } from '@/components/ui/Toast';
-import { badgeDefinitions, evaluateBadges } from '@/lib/badges';
+import { BADGE_DEFINITIONS, computeBadges, type Badge, type BadgeCategory } from '@/lib/badges';
+import { useBadgeDetail } from '@/hooks/useBadgeDetail';
 import { staggerContainer, cardEntrance, springs } from '@/lib/animations';
 
 /* ── Chart tooltip personalizado ── */
@@ -114,10 +116,11 @@ export default function StatsPage() {
   const [best,        setBest       ] = useState(0);
   const [total,       setTotal      ] = useState(0);
   const [relapses,    setRelapses   ] = useState<{ date: string; days_reached: number; trigger: string }[]>([]);
-  const [rulesTotal,  setRulesTotal ] = useState(0);
-  const [rulesDone,   setRulesDone  ] = useState(0);
+  const [rulesTotal,  setRulesTotal ] = useState(0); // kept for UI, used in header counts
+  const [rulesDone,   setRulesDone  ] = useState(0); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [history,     setHistory    ] = useState<{ date: string; completed: boolean; streak: number }[]>([]);
 
+  const [badgeFilter, setBadgeFilter] = useState<BadgeCategory | 'all'>('all');
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [toastMessage,    setToastMessage   ] = useState('');
   const [toastVisible,    setToastVisible   ] = useState(false);
@@ -155,14 +158,31 @@ export default function StatsPage() {
     return last30;
   }, [history]);
 
-  /* ── Badge stats ── */
-  const badgeStats = useMemo(() => ({
-    streak, bestStreak: best, totalDays: total,
-    relapses: relapses.length, victories: storage.getVictories().length,
-    rulesCompletedToday: rulesDone, rulesTotalToday: rulesTotal,
-  }), [streak, best, total, relapses.length, rulesDone, rulesTotal]);
+  const { open: openBadge } = useBadgeDetail();
 
-  const unlockedBadges = useMemo(() => new Set(evaluateBadges(badgeStats)), [badgeStats]);
+  /* ── Badge computation ── */
+  const allBadges = useMemo((): Badge[] => {
+    if (typeof window === 'undefined') return [];
+    const today = todayStr();
+    return computeBadges({
+      streak, bestStreak: best, totalDays: total,
+      relapses: storage.getRelapses(),
+      victories: storage.getVictories(),
+      rules: storage.getRules(),
+      checks: storage.getChecks(today),
+      isComeback: false,
+      comebackStreak: 0,
+      unlockedBadgeHistory: storage.getUnlockedBadgeHistory?.() ?? {},
+    });
+  }, [streak, best, total]);
+
+  const filteredBadges = useMemo(() =>
+    badgeFilter === 'all' ? allBadges : allBadges.filter(b => b.category === badgeFilter),
+  [allBadges, badgeFilter]);
+
+  const unlockedCount = useMemo(() => allBadges.filter(b => b.status === 'unlocked').length, [allBadges]);
+
+  void rulesTotal; // kept for header counts in future updates
 
   /* ── Export ── */
   const handleExport = useCallback(() => {
@@ -330,35 +350,141 @@ export default function StatsPage() {
         )}
 
         {/* ══════════════════════════════════
-            BADGES
+            INSIGNIAS — galería completa
         ══════════════════════════════════ */}
         <motion.div variants={cardEntrance}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px', marginBottom: '10px' }}>
-            <span className="text-label" style={{ color: 'var(--t3)', letterSpacing: '2.5px' }}>BADGES</span>
-            <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>
-              {unlockedBadges.size}/{badgeDefinitions.length}
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px', marginBottom: '12px' }}>
+            <span className="text-label" style={{ color: 'var(--t3)', letterSpacing: '2.5px' }}>INSIGNIAS</span>
+            <span style={{ fontSize: '12px', color: 'var(--t3)', fontWeight: 600 }}>
+              {unlockedCount} / {BADGE_DEFINITIONS.length} desbloqueadas
             </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-            {badgeDefinitions.map(b => {
-              const isUnlocked = unlockedBadges.has(b.id);
+
+          {/* Filtros categoría */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 12, scrollbarWidth: 'none' }}>
+            {([
+              { key: 'all',        label: 'Todas',        color: 'var(--t2)' },
+              { key: 'streak',     label: 'Racha',        color: '#30D158' },
+              { key: 'resilience', label: 'Resiliencia',  color: '#FF6B6B' },
+              { key: 'project',    label: 'Proyecto',     color: '#0A84FF' },
+              { key: 'code',       label: 'Código',       color: '#30D158' },
+              { key: 'legendary',  label: 'Legendarias',  color: '#FFD60A' },
+            ] as { key: BadgeCategory | 'all'; label: string; color: string }[]).map(f => {
+              const active = badgeFilter === f.key;
               return (
-                <div
-                  key={b.id}
+                <motion.button
+                  key={f.key}
+                  whileTap={{ scale: 0.94 }}
+                  transition={springs.snappy}
+                  onClick={() => setBadgeFilter(f.key)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '10px 12px', borderRadius: 'var(--r-md)',
-                    background: isUnlocked ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
-                    border: `0.5px solid ${isUnlocked ? 'rgba(255,255,255,0.10)' : 'var(--border-dim)'}`,
-                    opacity: isUnlocked ? 1 : 0.35,
+                    flexShrink: 0,
+                    padding: '6px 14px', borderRadius: 'var(--r-full)',
+                    background: active ? `${f.color}18` : 'transparent',
+                    border: `0.5px solid ${active ? `${f.color}60` : 'var(--border-dim)'}`,
+                    color: active ? f.color : 'var(--t3)',
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.5px',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {f.label}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {filteredBadges.map((b, i) => {
+              const isUnlocked   = b.status === 'unlocked';
+              const isInProgress = b.status === 'in_progress';
+              const isLocked     = b.status === 'locked';
+              const IconComp = ({ Flame: Flame, Zap, Shield, TrendingUp, Award, Star, Crown, RefreshCw, Sword, CheckSquare, Target, Layers } as Record<string, React.ElementType>)[b.icon] ?? Flame;
+
+              return (
+                <motion.button
+                  key={b.id}
+                  initial={{ opacity: 0, scale: 0.88, y: 16 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ ...springs.medium, delay: i * 0.05 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => openBadge(b)}
+                  style={{
+                    padding: '14px 12px', borderRadius: 'var(--r-lg)',
+                    background: isUnlocked
+                      ? `linear-gradient(145deg, ${b.accentColorDim} 0%, rgba(255,255,255,0.03) 100%)`
+                      : isInProgress ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.015)',
+                    backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                    border: `0.5px solid ${isUnlocked ? b.accentColor.replace('0.5','0.28').replace('0.6','0.28').replace('0.7','0.28') : isInProgress ? 'var(--border-subtle)' : 'var(--border-dim)'}`,
+                    borderTopColor: isUnlocked ? b.accentColor.replace('0.5','0.45').replace('0.6','0.45').replace('0.7','0.45') : undefined,
+                    boxShadow: isUnlocked ? `0 0 20px ${b.accentColorDim}` : 'var(--shadow-card)',
+                    opacity: isLocked ? 0.45 : 1,
+                    cursor: 'pointer', textAlign: 'left',
+                    position: 'relative', overflow: 'hidden',
+                    display: 'flex', flexDirection: 'column', gap: 8,
                     transition: 'opacity 0.3s',
                   }}
                 >
-                  <span style={{ fontSize: '16px' }}>{b.icon}</span>
-                  <span style={{ fontSize: '12px', color: isUnlocked ? 'var(--t2)' : 'var(--t4)', fontWeight: 500, lineHeight: 1.3 }}>
-                    {b.name}
-                  </span>
-                </div>
+                  {/* Lock icon top-right */}
+                  {isLocked && (
+                    <div style={{ position: 'absolute', top: 8, right: 8 }}>
+                      <Lock size={10} color="var(--t4)" strokeWidth={2} />
+                    </div>
+                  )}
+
+                  {/* Icon */}
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 'var(--r-md)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isUnlocked ? `${b.accentColorDim}` : 'rgba(255,255,255,0.04)',
+                    border: `0.5px solid ${isUnlocked ? b.accentColor.replace('0.5','0.25') : 'var(--border-dim)'}`,
+                    flexShrink: 0,
+                  }}>
+                    <IconComp size={18} color={isLocked ? 'var(--t4)' : b.iconColor} strokeWidth={1.8} style={{ opacity: isInProgress ? 0.6 : 1 }} />
+                  </div>
+
+                  {/* Text */}
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: isUnlocked ? 700 : 500, color: isUnlocked ? 'var(--t1)' : isInProgress ? 'var(--t2)' : 'var(--t4)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                      {b.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: isUnlocked ? b.iconColor : 'var(--t4)', marginTop: 4, lineHeight: 1.3 }}>
+                      {b.tagline}
+                    </div>
+                  </div>
+
+                  {/* Progress bar (in_progress) */}
+                  {isInProgress && (
+                    <div>
+                      <div style={{ height: 3, borderRadius: 'var(--r-full)', background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${b.progress * 100}%` }}
+                          transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.3 + i * 0.05 }}
+                          style={{ height: '100%', borderRadius: 'var(--r-full)', background: `linear-gradient(90deg, ${b.iconColor}, ${b.accentColor})` }}
+                        />
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>
+                        {b.currentValue} / {b.requirement}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Unlocked badge */}
+                  {isUnlocked && (
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '3px 8px', borderRadius: 'var(--r-full)',
+                      background: 'rgba(48,209,88,0.10)', border: '0.5px solid rgba(48,209,88,0.22)',
+                      fontSize: 9, fontWeight: 700, color: 'var(--green-text)', letterSpacing: '0.08em',
+                      alignSelf: 'flex-start',
+                    }}>
+                      ✓ LOGRADA
+                    </div>
+                  )}
+                </motion.button>
               );
             })}
           </div>
