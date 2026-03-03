@@ -1,52 +1,16 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Pencil, CheckCheck } from 'lucide-react';
-import * as Lucide from 'lucide-react';
+import { Plus, X, Pencil, CheckCheck, Timer, PlayCircle, Square, ArrowUp, ArrowDown } from 'lucide-react';
 import { storage, Rule, todayStr } from '@/lib/storage';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { CustomCheckbox } from '@/components/ui/CustomCheckbox';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { Toast } from '@/components/ui/Toast';
 import { staggerContainer, cardEntrance, springs } from '@/lib/animations';
-import { BADGE_DEFINITIONS, computeBadges, type BadgeDefinition } from '@/lib/badges';
-import { BadgeToast } from '@/components/ui/BadgeToast';
+import { useHaptics } from '@/hooks/useHaptics';
 
-/* ── Rarity visual system ───────────────── */
-type BadgeRarity = 'common' | 'rare' | 'epic' | 'legendary';
-const rarityConfig: Record<BadgeRarity, {
-  label: string; color: string; border: string;
-  bg: string; glow?: string; textGlow?: string;
-}> = {
-  common: {
-    label: 'COMÚN',
-    color: 'var(--t3)',
-    border: 'var(--border-dim)',
-    bg: 'rgba(255,255,255,0.03)',
-  },
-  rare: {
-    label: 'RARO',
-    color: 'var(--green-text)',
-    border: 'rgba(48,209,88,0.22)',
-    bg: 'rgba(48,209,88,0.06)',
-    glow: '0 0 16px rgba(48,209,88,0.12)',
-    textGlow: 'var(--green-text)',
-  },
-  epic: {
-    label: 'ÉPICO',
-    color: '#7B6CFF',
-    border: 'rgba(123,108,255,0.30)',
-    bg: 'rgba(123,108,255,0.07)',
-    glow: '0 0 18px rgba(123,108,255,0.14)',
-  },
-  legendary: {
-    label: 'LEGENDARIO',
-    color: 'var(--gold-warm)',
-    border: 'rgba(232,184,75,0.32)',
-    bg: 'rgba(232,184,75,0.07)',
-    glow: '0 0 22px rgba(232,184,75,0.20)',
-  },
-};
-
+// Minimal, focused, and smooth — Apple-level polish
 export default function CodigoPage() {
   const [mounted,     setMounted    ] = useState(false);
   const [rules,       setRules      ] = useState<Rule[]>([]);
@@ -55,9 +19,18 @@ export default function CodigoPage() {
   const [newText,     setNewText    ] = useState('');
   const [editingId,   setEditingId  ] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
-  const [badgeQueue,  setBadgeQueue ] = useState<BadgeDefinition[]>([]);
-  const [activeBadge, setActiveBadge] = useState<BadgeDefinition | null>(null);
-  const [badgeVisible,setBadgeVisible] = useState(false);
+
+  // Focus Session (premium-feel micro feature)
+  const [focusRuleId,   setFocusRuleId]   = useState<string | null>(null);
+  const [focusEndsAt,   setFocusEndsAt]   = useState<number | null>(null);
+  const [now,           setNow]           = useState<number>(Date.now());
+
+  // Toast
+  const [toastOn, setToastOn] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+
+  const { vibrate } = useHaptics();
+
   const today = todayStr();
 
   useEffect(() => {
@@ -72,7 +45,8 @@ export default function CodigoPage() {
       storage.setChecks(today, next);
       return next;
     });
-  }, [today]);
+    vibrate(8);
+  }, [today, vibrate]);
 
   const deleteRule = useCallback((id: string) => {
     const next = rules.filter(r => r.id !== id);
@@ -88,7 +62,8 @@ export default function CodigoPage() {
     setRules(next);
     setNewText('');
     setAdding(false);
-  }, [newText, rules]);
+    vibrate(8);
+  }, [newText, rules, vibrate]);
 
   const startEdit = useCallback((rule: Rule) => {
     setEditingId(rule.id);
@@ -106,62 +81,81 @@ export default function CodigoPage() {
     setEditingText('');
   }, [editingId, editingText, rules]);
 
+  const moveRule = (id: string, dir: 'up'|'down') => {
+    const idx = rules.findIndex(r => r.id === id);
+    if (idx < 0) return;
+    const j = dir === 'up' ? idx - 1 : idx + 1;
+    if (j < 0 || j >= rules.length) return;
+    const next = rules.slice();
+    const [item] = next.splice(idx, 1);
+    next.splice(j, 0, item);
+    storage.setRules(next);
+    setRules(next);
+    vibrate(8);
+  };
+
+  // Focus Session — countdown updates
+  useEffect(() => {
+    if (!focusEndsAt) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [focusEndsAt]);
+
+  const remainingSec = focusEndsAt ? Math.max(0, Math.ceil((focusEndsAt - now) / 1000)) : 0;
+  const focusProgress = focusEndsAt ? 1 - remainingSec / (25 * 60) : 0;
+
+  useEffect(() => {
+    if (focusEndsAt && remainingSec === 0 && focusRuleId) {
+      // Auto-complete rule
+      setFocusEndsAt(null);
+      setFocusRuleId(null);
+      setToastMsg('Sesión completada');
+      setToastOn(true);
+      // mark checked
+      toggleCheck(focusRuleId);
+      vibrate([10, 50, 10] as unknown as number);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remainingSec]);
+
+  const startFocus = (ruleId: string, minutes = 25) => {
+    setFocusRuleId(ruleId);
+    setFocusEndsAt(Date.now() + minutes * 60 * 1000);
+    setNow(Date.now());
+    vibrate(8);
+  };
+  const cancelFocus = () => {
+    setFocusEndsAt(null);
+    setFocusRuleId(null);
+  };
+
   const active  = rules.filter(r => r.enabled);
   const done    = active.filter(r => checks[r.id]).length;
   const total   = active.length;
   const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
   const allDone = total > 0 && done === total;
 
-  const unlocked = useMemo(() => {
-    if (typeof window === 'undefined') return new Set<string>();
-    const badges = computeBadges({
-      streak:      storage.getStreak(),
-      bestStreak:  storage.getBestStreak(),
-      totalDays:   storage.getTotalDays(),
-      relapses:    storage.getRelapses(),
-      victories:   storage.getVictories(),
-      rules,
-      checks,
-      isComeback:      false,
-      comebackStreak:  0,
-      unlockedBadgeHistory: storage.getUnlockedBadgeHistory?.() ?? {},
-    });
-    return new Set(badges.filter(b => b.status === 'unlocked').map(b => b.id));
-  }, [rules, checks]);
-
-  useEffect(() => {
-    const previous = new Set(storage.getBadgesUnlocked());
-    const current  = Array.from(unlocked);
-    const newlyUnlocked = current.filter(id => !previous.has(id));
-    if (!storage.hasBadgesUnlocked() && current.length > 0) {
-      storage.setBadgesUnlocked(current);
-      return;
-    }
-    if (newlyUnlocked.length > 0) {
-      const newBadges = BADGE_DEFINITIONS.filter(b => newlyUnlocked.includes(b.id));
-      setBadgeQueue(prev => [...prev, ...newBadges]);
-      storage.setBadgesUnlocked(Array.from(new Set([...current, ...Array.from(previous)])));
-    }
-  }, [unlocked]);
-
-  useEffect(() => {
-    if (badgeVisible || activeBadge || badgeQueue.length === 0) return;
-    setActiveBadge(badgeQueue[0]);
-    setBadgeVisible(true);
-  }, [badgeQueue, badgeVisible, activeBadge]);
-
-  const hideBadgeToast = () => {
-    setBadgeVisible(false);
-    setActiveBadge(null);
-    setBadgeQueue(prev => prev.slice(1));
+  const fmt = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   };
+
+  // Quick templates (add fast if not present)
+  const templates = useMemo(() => [
+    'Sin dopamina barata antes de la noche',
+    '-30min Redes',
+    'Trabajar en mi proyecto',
+  ], []);
+
+  const canAddTemplate = (t: string) => !rules.some(r => r.text.toLowerCase() === t.toLowerCase());
 
   if (!mounted) return null;
 
   return (
     <PageWrapper glowState={allDone ? 'success' : 'neutral'}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{ padding: '20px 20px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <span className="text-label" style={{ color: 'var(--t3)', letterSpacing: '2.5px' }}>REGLAS</span>
@@ -180,11 +174,11 @@ export default function CodigoPage() {
         variants={staggerContainer} initial="hidden" animate="show"
         style={{ padding: '8px 16px 24px', display: 'flex', flexDirection: 'column', gap: '8px' }}
       >
-
-        {/* ── Reglas ── */}
+        {/* Rules list */}
         <AnimatePresence>
           {rules.map(rule => {
             const isChecked = !!checks[rule.id];
+            const isFocused = focusRuleId === rule.id && focusEndsAt;
             return (
               <motion.div
                 key={rule.id}
@@ -192,8 +186,8 @@ export default function CodigoPage() {
                 layout
                 exit={{ opacity: 0, scale: 0.94, y: -4, transition: { duration: 0.2 } }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '14px',
-                  padding: '16px 18px', borderRadius: 'var(--r-lg)',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '14px 14px', borderRadius: 'var(--r-lg)',
                   background: isChecked
                     ? 'linear-gradient(135deg, rgba(48,209,88,0.07) 0%, rgba(48,209,88,0.03) 100%)'
                     : 'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
@@ -240,37 +234,46 @@ export default function CodigoPage() {
                   </span>
                 )}
 
-                <div style={{ display: 'flex', gap: '4px' }}>
+                {/* Reorder + Edit controls */}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <motion.button
-                    whileTap={{ scale: 0.85 }}
+                    whileTap={{ scale: 0.9 }}
+                    transition={springs.snappy}
+                    onClick={() => moveRule(rule.id, 'up')}
+                    aria-label="Subir"
+                    style={{ background: 'none', border: 'none', color: 'var(--t4)', padding: 6, cursor: 'pointer' }}
+                  >
+                    <ArrowUp size={14} />
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    transition={springs.snappy}
+                    onClick={() => moveRule(rule.id, 'down')}
+                    aria-label="Bajar"
+                    style={{ background: 'none', border: 'none', color: 'var(--t4)', padding: 6, cursor: 'pointer' }}
+                  >
+                    <ArrowDown size={14} />
+                  </motion.button>
+
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
                     transition={springs.snappy}
                     onClick={() => startEdit(rule)}
                     aria-label="Editar"
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'var(--t4)', padding: '6px', borderRadius: 'var(--r-sm)',
-                      transition: 'color 0.15s',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--t2)')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--t4)')}
+                    style={{ background: 'none', border: 'none', color: 'var(--t4)', padding: 6, cursor: 'pointer' }}
                   >
-                    <Pencil size={13} strokeWidth={2} />
+                    <Pencil size={13} />
                   </motion.button>
+
                   {rule.custom && (
                     <motion.button
-                      whileTap={{ scale: 0.85 }}
+                      whileTap={{ scale: 0.9 }}
                       transition={springs.snappy}
                       onClick={() => deleteRule(rule.id)}
                       aria-label="Eliminar"
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: 'var(--t4)', padding: '6px', borderRadius: 'var(--r-sm)',
-                        transition: 'color 0.15s',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
-                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--t4)')}
+                      style={{ background: 'none', border: 'none', color: 'var(--t4)', padding: 6, cursor: 'pointer' }}
                     >
-                      <X size={13} strokeWidth={2} />
+                      <X size={13} />
                     </motion.button>
                   )}
                 </div>
@@ -279,7 +282,43 @@ export default function CodigoPage() {
           })}
         </AnimatePresence>
 
-        {/* ── All Done banner ── */}
+        {/* Focus Session bar (inline under focused rule) */}
+        <AnimatePresence>
+          {focusRuleId && focusEndsAt && (
+            <motion.div
+              key="focus"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={springs.medium}
+              className="glass-1"
+              style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 'var(--r-lg)' }}
+            >
+              <Timer size={16} color="var(--t2)" />
+              <div style={{ flex: 1 }}>
+                <div style={{ height: 4, borderRadius: 'var(--r-full)', background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, Math.max(0, focusProgress * 100))}%` }}
+                    transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+                    style={{ height: '100%', background: 'linear-gradient(90deg, #30D158, #0A84FF)', borderRadius: 'var(--r-full)' }}
+                  />
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 6 }}>{fmt(remainingSec)} restantes</div>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                transition={springs.snappy}
+                onClick={cancelFocus}
+                style={{ background: 'none', border: '0.5px solid var(--border-dim)', color: 'var(--t3)', padding: '6px 10px', borderRadius: 'var(--r-full)', cursor: 'pointer' }}
+              >
+                <Square size={14} />
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* All Done banner */}
         <AnimatePresence>
           {allDone && (
             <motion.div
@@ -303,7 +342,7 @@ export default function CodigoPage() {
           )}
         </AnimatePresence>
 
-        {/* ── Añadir regla ── */}
+        {/* Add Rule */}
         {rules.length < 8 && (
           <AnimatePresence mode="wait">
             {adding ? (
@@ -362,92 +401,30 @@ export default function CodigoPage() {
           </AnimatePresence>
         )}
 
-        {/* ─────────────────────────────────────
-            BADGES
-        ───────────────────────────────────── */}
-        <motion.div variants={cardEntrance} style={{ marginTop: '16px' }}>
-
-          {/* Sección header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', padding: '0 2px' }}>
-            <span className="text-label" style={{ color: 'var(--t3)', letterSpacing: '2.5px' }}>BADGES</span>
-            <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 600 }}>
-              {unlocked.size}/{BADGE_DEFINITIONS.length}
-            </span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-            {BADGE_DEFINITIONS.map(b => {
-              const isUnlocked = unlocked.has(b.id);
-              const cfg = rarityConfig[(b.rarity ?? 'common') as BadgeRarity];
-
-              return (
-                <motion.div
-                  key={b.id}
-                  whileHover={isUnlocked ? { scale: 1.02 } : {}}
-                  transition={springs.snappy}
-                  className={b.rarity === 'legendary' && isUnlocked ? 'legendary-shine' : ''}
-                  style={{
-                    padding: '13px', borderRadius: 'var(--r-lg)',
-                    background: isUnlocked ? cfg.bg : 'rgba(255,255,255,0.02)',
-                    backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                    border: `0.5px solid ${isUnlocked ? cfg.border : 'var(--border-dim)'}`,
-                    borderTopColor: isUnlocked ? cfg.border : 'var(--border-dim)',
-                    boxShadow: isUnlocked ? (cfg.glow ?? 'var(--shadow-card)') : 'none',
-                    opacity: isUnlocked ? 1 : 0.4,
-                    transition: 'opacity 0.3s ease, box-shadow 0.3s ease',
-                    position: 'relative', overflow: 'hidden',
-                  }}
-                >
-                  {/* Shimmer al desbloquear */}
-                  {isUnlocked && <div className="milestone-unlocked" style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', overflow: 'hidden' }} />}
-
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-                    <div style={{
-                      width: 38, height: 38, borderRadius: 'var(--r-md)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: isUnlocked ? `rgba(255,255,255,0.07)` : 'rgba(255,255,255,0.03)',
-                      border: `0.5px solid ${isUnlocked ? cfg.border : 'var(--border-dim)'}`,
-                      boxShadow: isUnlocked && cfg.glow ? cfg.glow : 'none',
-                      flexShrink: 0,
-                    }}>
-                      {/* Render Lucide icon by name */}
-                      {(() => {
-                        const ICONS: Record<string, React.ElementType> = Lucide as unknown as Record<string, React.ElementType>;
-                        const IconComp = ICONS[b.icon] ?? ICONS['Award'];
-                        const color = isUnlocked ? (cfg.textGlow ?? 'var(--t2)') : 'var(--t4)';
-                        return <IconComp size={16} color={color} strokeWidth={1.8} />;
-                      })()}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: '13px', fontWeight: 700, color: isUnlocked ? 'var(--t1)' : 'var(--t4)',
-                        letterSpacing: '-0.02em', lineHeight: 1.2,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {b.name}
-                      </div>
-                      <div style={{
-                        fontSize: '9px', color: isUnlocked ? cfg.color : 'var(--t4)',
-                        letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '3px', fontWeight: 700,
-                      }}>
-                        {cfg.label}
-                      </div>
-                    </div>
-                  </div>
-                  <p style={{
-                    fontSize: '11px', color: isUnlocked ? 'var(--t3)' : 'var(--t4)',
-                    lineHeight: 1.4, marginTop: '9px', position: 'relative', zIndex: 1,
-                  }}>
-                    {b.description}
-                  </p>
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.div>
+        {/* Quick templates */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+          {templates.map(t => (
+            <motion.button
+              key={t}
+              whileTap={{ scale: 0.95 }}
+              transition={springs.snappy}
+              disabled={!canAddTemplate(t)}
+              onClick={() => { setNewText(t); addRule(); }}
+              style={{
+                padding: '6px 10px', borderRadius: 'var(--r-full)',
+                background: canAddTemplate(t) ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+                border: '0.5px solid var(--border-subtle)',
+                color: canAddTemplate(t) ? 'var(--t2)' : 'var(--t4)',
+                fontSize: 12, cursor: canAddTemplate(t) ? 'pointer' : 'default'
+              }}
+            >
+              + {t}
+            </motion.button>
+          ))}
+        </div>
       </motion.div>
 
-      <BadgeToast badge={activeBadge} visible={badgeVisible} onHide={hideBadgeToast} />
+      <Toast message={toastMsg} visible={toastOn} onHide={() => setToastOn(false)} variant="success" />
     </PageWrapper>
   );
 }
