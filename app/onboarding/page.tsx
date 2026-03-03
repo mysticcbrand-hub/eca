@@ -8,9 +8,9 @@ import { staggerContainer, cardEntrance, easeCustom, springs } from '@/lib/anima
 import { Plus, Check } from 'lucide-react';
 
 const defaultRules: Rule[] = [
-  { id: '1', text: 'Sin dopamina barata antes del mediodía', enabled: true, custom: false },
-  { id: '2', text: 'Ante el impulso: esperar 10 minutos',   enabled: true, custom: false },
-  { id: '3', text: 'Cada día, algo difícil',                enabled: true, custom: false },
+  { id: '1', text: 'Sin dopamina barata antes de la noche', enabled: true, custom: false },
+  { id: '2', text: '-30min Redes',                           enabled: true, custom: false },
+  { id: '3', text: 'Trabajar en mi proyecto',                enabled: true, custom: false },
 ];
 
 const targetOptions = [

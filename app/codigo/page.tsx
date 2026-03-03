@@ -406,11 +406,15 @@ export default function CodigoPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: isUnlocked ? `rgba(255,255,255,0.07)` : 'rgba(255,255,255,0.03)',
                       border: `0.5px solid ${isUnlocked ? cfg.border : 'var(--border-dim)'}`,
-                      fontSize: '16px',
                       boxShadow: isUnlocked && cfg.glow ? cfg.glow : 'none',
                       flexShrink: 0,
                     }}>
-                      {b.icon}
+                      {/* Render Lucide icon by name */}
+                      {(() => {
+                        const ICONS: Record<string, any> = (await import('lucide-react')) as any;
+                        const IconComp = ICONS[b.icon] ?? ICONS['Award'];
+                        return <IconComp size={16} color={isUnlocked ? (cfg.textGlow ?? 'var(--t2)') : 'var(--t4)'} strokeWidth={1.8} />
+                      })()}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{

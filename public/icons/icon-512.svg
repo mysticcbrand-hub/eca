@@ -34,11 +34,5 @@
     Z
   "/>
 
-  <!-- E monogram: three rounded bars (simple, crisp) -->
-  <g fill="#F2F2F7">
-    <rect x="376" y="376" width="272" height="40" rx="20"/>
-    <rect x="376" y="492" width="208" height="40" rx="20"/>
-    <rect x="376" y="608" width="304" height="40" rx="20"/>
-  </g>
 
 </svg>
