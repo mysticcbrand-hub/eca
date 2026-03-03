@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Pencil, CheckCheck } from 'lucide-react';
+import * as Lucide from 'lucide-react';
 import { storage, Rule, todayStr } from '@/lib/storage';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { CustomCheckbox } from '@/components/ui/CustomCheckbox';
@@ -411,9 +412,10 @@ export default function CodigoPage() {
                     }}>
                       {/* Render Lucide icon by name */}
                       {(() => {
-                        const ICONS: Record<string, any> = (await import('lucide-react')) as any;
+                        const ICONS: Record<string, React.ElementType> = Lucide as unknown as Record<string, React.ElementType>;
                         const IconComp = ICONS[b.icon] ?? ICONS['Award'];
-                        return <IconComp size={16} color={isUnlocked ? (cfg.textGlow ?? 'var(--t2)') : 'var(--t4)'} strokeWidth={1.8} />
+                        const color = isUnlocked ? (cfg.textGlow ?? 'var(--t2)') : 'var(--t4)';
+                        return <IconComp size={16} color={color} strokeWidth={1.8} />;
                       })()}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
