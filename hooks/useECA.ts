@@ -40,6 +40,30 @@ export function useECA() {
     setLastCheckinState(today);
   }, [streak, totalDays, bestStreak, today]);
 
+  const uncheckin = useCallback(() => {
+    if (!checkedIn) return;
+    const newStreak = Math.max(0, streak - 1);
+    const newTotal  = Math.max(0, totalDays - 1);
+
+    // Remove today's entry from history
+    const history  = storage.getHistory();
+    const filtered = history.filter(e => e.date !== today);
+    storage.setHistory(filtered);
+
+    // Recalculate bestStreak from remaining history
+    const newBest = filtered.reduce((max, e) => Math.max(max, e.streak), 0);
+
+    storage.setStreak(newStreak);
+    storage.setBestStreak(newBest);
+    storage.setTotalDays(newTotal);
+    storage.setLastCheckin(null);
+
+    setStreakState(newStreak);
+    setBestStreakState(newBest);
+    setTotalDaysState(newTotal);
+    setLastCheckinState(null);
+  }, [checkedIn, streak, totalDays, today]);
+
   const registerRelapse = useCallback((trigger: string) => {
     const relapse: Relapse = {
       date: today,
@@ -80,6 +104,7 @@ export function useECA() {
     victories,
     isNewRecord,
     checkin,
+    uncheckin,
     registerRelapse,
     updateRules,
     addVictory,

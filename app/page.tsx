@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Clock, AlertTriangle, Check } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, Check, Undo2 } from 'lucide-react';
 import { useECA } from '@/hooks/useECA';
 import { useAmbientGlow } from '@/hooks/useAmbientGlow';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
@@ -69,9 +69,11 @@ export default function TodayPage() {
   const [showRecaida, setShowRecaida]   = useState(false);
   const [trigger, setTrigger]           = useState('');
   const [toastMsg, setToastMsg]         = useState('');
+  const [toastVariant, setToastVariant]  = useState<'success' | 'info' | 'warning'>('info');
   const [toastOn, setToastOn]           = useState(false);
 
-  const { streak, bestStreak, totalDays, checkedIn, relapses, checkin, registerRelapse } = useECA();
+  const { streak, bestStreak, totalDays, checkedIn, relapses, checkin, uncheckin, registerRelapse } = useECA();
+  const [showDesmarcar, setShowDesmarcar] = useState(false);
   const { glowStyle, triggerSuccess, triggerRelapse } = useAmbientGlow();
   const quote  = useDailyQuote();
   const ripple = useRipple();
@@ -113,6 +115,14 @@ export default function TodayPage() {
     setShowCumplido(true);
   };
 
+  const handleUncheckin = () => {
+    uncheckin();
+    setShowDesmarcar(false);
+    setToastMsg('Check-in de hoy desmarcado');
+    setToastVariant('info');
+    setToastOn(true);
+  };
+
   const handleRelapse = () => {
     if (!trigger) return;
     registerRelapse(trigger);
@@ -120,6 +130,7 @@ export default function TodayPage() {
     setShowRecaida(false);
     setTrigger('');
     setToastMsg(getRandomMessage(recaidaMessages));
+    setToastVariant('warning');
     setToastOn(true);
   };
 
@@ -289,40 +300,40 @@ export default function TodayPage() {
         {/* ── Botones de acción ── */}
         <motion.div variants={cardEntrance} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-          {/* BOTÓN PRIMARIO — HE CUMPLIDO HOY */}
+          {/* BOTÓN PRIMARIO — HE CUMPLIDO HOY / DESMARCAR */}
           <motion.button
             ref={ripple.ref}
-            whileHover={!checkedIn ? {
+            whileHover={{
               scale: 1.01,
-              boxShadow: '0 0 0 1px rgba(48,209,88,0.45), 0 0 32px rgba(48,209,88,0.22), var(--shadow-button)',
-            } : {}}
-            whileTap={!checkedIn ? { scale: 0.97 } : {}}
+              boxShadow: checkedIn
+                ? '0 0 0 1px rgba(48,209,88,0.20), 0 0 16px rgba(48,209,88,0.08)'
+                : '0 0 0 1px rgba(48,209,88,0.45), 0 0 32px rgba(48,209,88,0.22), var(--shadow-button)',
+            }}
+            whileTap={{ scale: 0.97 }}
             transition={springs.snappy}
-            onClick={!checkedIn ? handleCheckin : undefined}
-            disabled={checkedIn}
+            onClick={checkedIn ? () => setShowDesmarcar(true) : handleCheckin}
             style={{
               width: '100%', height: '60px', borderRadius: 'var(--r-lg)',
               background: checkedIn
                 ? 'rgba(48,209,88,0.04)'
                 : 'linear-gradient(135deg, rgba(48,209,88,0.18) 0%, rgba(48,209,88,0.10) 50%, rgba(42,178,70,0.15) 100%)',
               backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-              border: `0.5px solid ${checkedIn ? 'rgba(48,209,88,0.09)' : 'rgba(48,209,88,0.35)'}`,
-              borderTopColor: checkedIn ? 'rgba(48,209,88,0.09)' : 'rgba(48,209,88,0.50)',
+              border: `0.5px solid ${checkedIn ? 'rgba(48,209,88,0.15)' : 'rgba(48,209,88,0.35)'}`,
+              borderTopColor: checkedIn ? 'rgba(48,209,88,0.15)' : 'rgba(48,209,88,0.50)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              cursor: checkedIn ? 'default' : 'pointer',
-              opacity: checkedIn ? 0.45 : 1,
+              cursor: 'pointer',
+              opacity: checkedIn ? 0.55 : 1,
               boxShadow: checkedIn ? 'none' : '0 0 0 1px rgba(48,209,88,0.18), 0 0 20px rgba(48,209,88,0.10), var(--shadow-button)',
               transition: 'opacity 0.2s ease, background 0.2s ease',
               position: 'relative', overflow: 'hidden',
-              pointerEvents: checkedIn ? 'none' : 'auto',
             }}
           >
             {checkedIn
-              ? <Clock size={18} color="var(--green-text)" strokeWidth={1.5} />
+              ? <Check size={18} color="var(--green-text)" strokeWidth={2} />
               : <CheckCircle2 size={18} color="var(--green)" strokeWidth={2} />
             }
             <span className="text-label" style={{ color: checkedIn ? 'var(--t3)' : 'var(--t1)', letterSpacing: '1.5px' }}>
-              {checkedIn ? 'MARCADO · VUELVE MAÑANA' : 'HE CUMPLIDO HOY'}
+              {checkedIn ? 'MARCADO · TOCA PARA DESMARCAR' : 'HE CUMPLIDO HOY'}
             </span>
           </motion.button>
 
@@ -424,6 +435,64 @@ export default function TodayPage() {
       </BottomSheet>
 
       {/* ══════════════════════════════════════
+          MODAL — DESMARCAR
+      ══════════════════════════════════════ */}
+      <BottomSheet open={showDesmarcar} onClose={() => setShowDesmarcar(false)}>
+        <div style={{ padding: '32px 24px 36px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+
+          <motion.div
+            initial={{ scale: 0, rotate: 15 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 22, delay: 0.08 }}
+            style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.06)',
+              border: '0.5px solid var(--border-mid)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Undo2 size={28} color="var(--t3)" strokeWidth={1.8} />
+          </motion.div>
+
+          <div>
+            <h3 className="text-title" style={{ color: 'var(--t1)', marginBottom: '6px' }}>
+              ¿Desmarcar este día?
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--t3)', lineHeight: 1.6, maxWidth: '260px' }}>
+              Se revertirá el check-in de hoy.{streak > 1 ? ` Tu racha volverá a ${streak - 1} día${streak - 1 === 1 ? '' : 's'}.` : ' Tu racha se reiniciará.'}
+            </p>
+          </div>
+
+          <div className="divider" style={{ width: '40px' }} />
+
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            transition={springs.snappy}
+            onClick={handleUncheckin}
+            style={{
+              width: '100%', height: '52px', borderRadius: 'var(--r-lg)',
+              background: 'rgba(255,255,255,0.04)',
+              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              border: '0.5px solid var(--border-mid)',
+              color: 'var(--t1)',
+              fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Sí, desmarcar
+          </motion.button>
+
+          <button
+            onClick={() => setShowDesmarcar(false)}
+            style={{ background: 'none', border: 'none', color: 'var(--t4)', fontSize: '14px', cursor: 'pointer' }}
+          >
+            Cancelar
+          </button>
+        </div>
+      </BottomSheet>
+
+      {/* ══════════════════════════════════════
           MODAL — RECAÍDA
       ══════════════════════════════════════ */}
       <BottomSheet open={showRecaida} onClose={() => { setShowRecaida(false); setTrigger(''); }}>
@@ -494,7 +563,7 @@ export default function TodayPage() {
         </div>
       </BottomSheet>
 
-      <Toast message={toastMsg} visible={toastOn} onHide={() => setToastOn(false)} variant="warning" />
+      <Toast message={toastMsg} visible={toastOn} onHide={() => setToastOn(false)} variant={toastVariant} />
     </PageWrapper>
   );
 }

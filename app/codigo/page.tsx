@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Pencil, CheckCheck, Timer, PlayCircle, Square, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, X, Pencil, CheckCheck, ArrowUp, ArrowDown } from 'lucide-react';
 import { storage, Rule, todayStr } from '@/lib/storage';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { CustomCheckbox } from '@/components/ui/CustomCheckbox';
@@ -19,11 +19,6 @@ export default function CodigoPage() {
   const [newText,     setNewText    ] = useState('');
   const [editingId,   setEditingId  ] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
-
-  // Focus Session (premium-feel micro feature)
-  const [focusRuleId,   setFocusRuleId]   = useState<string | null>(null);
-  const [focusEndsAt,   setFocusEndsAt]   = useState<number | null>(null);
-  const [now,           setNow]           = useState<number>(Date.now());
 
   // Toast
   const [toastOn, setToastOn] = useState(false);
@@ -92,41 +87,6 @@ export default function CodigoPage() {
     storage.setRules(next);
     setRules(next);
     vibrate(8);
-  };
-
-  // Focus Session — countdown updates
-  useEffect(() => {
-    if (!focusEndsAt) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [focusEndsAt]);
-
-  const remainingSec = focusEndsAt ? Math.max(0, Math.ceil((focusEndsAt - now) / 1000)) : 0;
-  const focusProgress = focusEndsAt ? 1 - remainingSec / (25 * 60) : 0;
-
-  useEffect(() => {
-    if (focusEndsAt && remainingSec === 0 && focusRuleId) {
-      // Auto-complete rule
-      setFocusEndsAt(null);
-      setFocusRuleId(null);
-      setToastMsg('Sesión completada');
-      setToastOn(true);
-      // mark checked
-      toggleCheck(focusRuleId);
-      vibrate([10, 50, 10] as unknown as number);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remainingSec]);
-
-  const startFocus = (ruleId: string, minutes = 25) => {
-    setFocusRuleId(ruleId);
-    setFocusEndsAt(Date.now() + minutes * 60 * 1000);
-    setNow(Date.now());
-    vibrate(8);
-  };
-  const cancelFocus = () => {
-    setFocusEndsAt(null);
-    setFocusRuleId(null);
   };
 
   const active  = rules.filter(r => r.enabled);
@@ -234,32 +194,8 @@ export default function CodigoPage() {
                   </span>
                 )}
 
-                {/* Focus + Reorder + Edit controls */}
+                {/* Reorder + Edit controls */}
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {!isChecked && (!focusRuleId || isFocused) && (
-                    isFocused ? (
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        transition={springs.snappy}
-                        onClick={cancelFocus}
-                        aria-label="Detener enfoque"
-                        style={{ background: 'none', border: 'none', color: 'var(--t3)', padding: 6, cursor: 'pointer' }}
-                      >
-                        <Square size={14} />
-                      </motion.button>
-                    ) : (
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        transition={springs.snappy}
-                        onClick={() => startFocus(rule.id)}
-                        aria-label="Enfocar 25 min"
-                        style={{ background: 'none', border: 'none', color: 'var(--t3)', padding: 6, cursor: 'pointer' }}
-                      >
-                        <PlayCircle size={16} />
-                      </motion.button>
-                    )
-                  )}
-
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     transition={springs.snappy}
@@ -306,10 +242,7 @@ export default function CodigoPage() {
           })}
         </AnimatePresence>
 
-        {/* Focus Session bar (inline under focused rule) */}
-        <AnimatePresence>
-          {focusRuleId && focusEndsAt && (
-            <motion.div
+        
               key="focus"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
