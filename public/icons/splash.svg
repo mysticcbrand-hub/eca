@@ -1,7 +1,46 @@
-<svg width='2048' height='2732' viewBox='0 0 2048 2732' xmlns='http://www.w3.org/2000/svg'>
-  <rect width='2048' height='2732' fill='#07070A'/>
-  <ellipse cx='1024' cy='900' rx='800' ry='500' fill='rgba(61,219,130,0.06)'/>
-  <text x='1024' y='1300' font-family='-apple-system,sans-serif' font-weight='800' font-size='320' fill='#EFEFF4' text-anchor='middle' dominant-baseline='middle' letter-spacing='-12'>ECA</text>
-  <text x='1024' y='1480' font-family='-apple-system,sans-serif' font-weight='400' font-size='72' fill='#7A7A8C' text-anchor='middle' dominant-baseline='middle' letter-spacing='2'>Tu mente. Reclamada.</text>
-  <rect x='924' y='1570' width='200' height='2' rx='1' fill='#3DDB82' opacity='0.4'/>
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2732" viewBox="0 0 2048 2732">
+  <defs>
+    <linearGradient id="splash-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#09090E"/>
+      <stop offset="100%" stop-color="#0D0D14"/>
+    </linearGradient>
+    <linearGradient id="splash-ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1AAE4F"/>
+      <stop offset="50%" stop-color="#30D158"/>
+      <stop offset="100%" stop-color="#0A84FF"/>
+    </linearGradient>
+    <radialGradient id="splash-glow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#30D158" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#30D158" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="2048" height="2732" fill="url(#splash-bg)"/>
+  
+  <!-- Ambient glow -->
+  <ellipse cx="1024" cy="950" rx="900" ry="550" fill="url(#splash-glow)"/>
+  
+  <!-- Ring logo -->
+  <g transform="translate(1024, 1100)">
+    <path fill="url(#splash-ring)" fill-rule="evenodd" d="
+      M 0 -280
+      A 280 280 0 1 1 -0.01 -280
+      Z
+      M 0 -190
+      A 190 190 0 1 0 0.01 -190
+      Z
+    "/>
+  </g>
+  
+  <!-- Tagline -->
+  <text x="1024" y="1550" 
+    font-family="-apple-system, SF Pro Display, system-ui, sans-serif" 
+    font-size="72" 
+    font-weight="500"
+    fill="rgba(255,255,255,0.6)"
+    text-anchor="middle"
+    letter-spacing="0.03em">
+    Tu mente. Reclamada.
+  </text>
 </svg>

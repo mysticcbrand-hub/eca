@@ -3,6 +3,7 @@ import './globals.css';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { BadgeDetailProvider } from '@/hooks/useBadgeDetail';
 import { BadgeDetailSheet } from '@/components/ui/BadgeDetailSheet';
+import { AppShell } from '@/components/layout/AppShell';
 
 export const metadata: Metadata = {
   title: 'ECA — Sistema Mental',
@@ -40,7 +41,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap"
           rel="stylesheet"
@@ -61,39 +61,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         }}
       >
         <BadgeDetailProvider>
-          {/* Centred app shell — 430px max on desktop */}
-          <div
-            id="app-shell"
-            style={{
-              position: 'relative',
-              width: '100%',
-              maxWidth: '430px',
-              height: '100dvh',
-              margin: '0 auto',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              background: '#09090E',
-            }}
-          >
-            {/* Page content — scrollable region */}
+          <AppShell>
             <div
-              id="page-content"
-              className="page-scroll"
-              style={{ flex: 1, position: 'relative', overflow: 'hidden auto', paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
+              id="app-shell"
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '430px',
+                height: '100dvh',
+                margin: '0 auto',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                background: '#09090E',
+              }}
             >
-              {children}
+              <div
+                id="page-content"
+                className="page-scroll"
+                style={{ flex: 1, position: 'relative', overflow: 'hidden auto', paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
+              >
+                {children}
+              </div>
+              <BottomNav />
             </div>
-
-            {/* Fixed bottom nav inside shell */}
-            <BottomNav />
-          </div>
-
-          {/* Badge detail sheet — singleton, renders once for the whole app */}
+          </AppShell>
           <BadgeDetailSheet />
         </BadgeDetailProvider>
 
-        {/* Desktop sidebar blur for > 430px screens */}
         <style>{`
           @media (min-width: 431px) {
             body::before {
