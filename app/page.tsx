@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Clock, AlertTriangle, Check, Undo2 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Check, Undo2 } from 'lucide-react';
 import { useECA } from '@/hooks/useECA';
 import { useAmbientGlow } from '@/hooks/useAmbientGlow';
 import { useDailyQuote } from '@/hooks/useDailyQuote';

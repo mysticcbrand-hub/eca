@@ -20,9 +20,9 @@ export default function CodigoPage() {
   const [editingId,   setEditingId  ] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
 
-  // Toast
+  // Toast (kept for future use)
   const [toastOn, setToastOn] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
+  const [toastMsg] = useState('');
 
   const { vibrate } = useHaptics();
 
