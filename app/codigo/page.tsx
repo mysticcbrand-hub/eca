@@ -95,12 +95,6 @@ export default function CodigoPage() {
   const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
   const allDone = total > 0 && done === total;
 
-  const fmt = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  };
-
   // Quick templates (add fast if not present)
   const templates = useMemo(() => [
     'Sin dopamina barata antes de la noche',
@@ -138,7 +132,6 @@ export default function CodigoPage() {
         <AnimatePresence>
           {rules.map(rule => {
             const isChecked = !!checks[rule.id];
-            const isFocused = focusRuleId === rule.id && focusEndsAt;
             return (
               <motion.div
                 key={rule.id}
@@ -240,39 +233,6 @@ export default function CodigoPage() {
               </motion.div>
             );
           })}
-        </AnimatePresence>
-
-        
-              key="focus"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={springs.medium}
-              className="glass-1"
-              style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 'var(--r-lg)' }}
-            >
-              <Timer size={16} color="var(--t2)" />
-              <div style={{ flex: 1 }}>
-                <div style={{ height: 4, borderRadius: 'var(--r-full)', background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, Math.max(0, focusProgress * 100))}%` }}
-                    transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-                    style={{ height: '100%', background: 'linear-gradient(90deg, #30D158, #0A84FF)', borderRadius: 'var(--r-full)' }}
-                  />
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 6 }}>{fmt(remainingSec)} restantes</div>
-              </div>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                transition={springs.snappy}
-                onClick={cancelFocus}
-                style={{ background: 'none', border: '0.5px solid var(--border-dim)', color: 'var(--t3)', padding: '6px 10px', borderRadius: 'var(--r-full)', cursor: 'pointer' }}
-              >
-                <Square size={14} />
-              </motion.button>
-            </motion.div>
-          )}
         </AnimatePresence>
 
         {/* All Done banner */}
